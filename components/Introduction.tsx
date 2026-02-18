@@ -1,8 +1,17 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 
+import cloud1 from '../assets/Realistic Clouds Overlay 1.png';
+import cloud2 from '../assets/Realistic Clouds Overlay 2.png';
+import cloud3 from '../assets/Realistic Clouds Overlay 3.png';
+import cloud4 from '../assets/Realistic Clouds Overlay 4.png';
+
+const CLOUD_ASSETS = [cloud1, cloud2, cloud3, cloud4];
+
 const Introduction: React.FC = () => {
   const textRef = useRef<HTMLDivElement>(null);
+  const bgCloudsRef = useRef<HTMLDivElement>(null);
+  const fgCloudsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Floating animation for intro text
@@ -13,10 +22,91 @@ const Introduction: React.FC = () => {
       yoyo: true,
       ease: 'sine.inOut'
     });
+
+    // Animate background clouds (Slow & Deep)
+    const bgClouds = bgCloudsRef.current?.children;
+    if (bgClouds) {
+      Array.from(bgClouds).forEach((cloud, i) => {
+        gsap.to(cloud, {
+          x: '120vw',
+          duration: 40 + i * 15,
+          repeat: -1,
+          ease: 'none',
+          delay: -i * 10
+        });
+        // Subtle drift
+        gsap.to(cloud, {
+          y: '+=30',
+          duration: 3 + i,
+          repeat: -1,
+          yoyo: true,
+          ease: 'sine.inOut'
+        });
+      });
+    }
+
+    // Animate foreground clouds (Faster & Closer)
+    const fgClouds = fgCloudsRef.current?.children;
+    if (fgClouds) {
+      Array.from(fgClouds).forEach((cloud, i) => {
+        gsap.to(cloud, {
+          x: '140vw',
+          duration: 25 + i * 8,
+          repeat: -1,
+          ease: 'none',
+          delay: -i * 12
+        });
+        gsap.to(cloud, {
+          y: '-=50',
+          duration: 4 + i,
+          repeat: -1,
+          yoyo: true,
+          ease: 'sine.inOut'
+        });
+      });
+    }
   }, []);
 
   return (
     <section className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#d8f4fe] via-[#a0d4f2] to-[#7db6d6]">
+      
+      {/* BACKGROUND CLOUDS (Behind Text) */}
+      <div ref={bgCloudsRef} className="absolute inset-0 pointer-events-none opacity-60">
+        {[...Array(6)].map((_, i) => (
+          <img 
+            key={`bg-${i}`}
+            src={CLOUD_ASSETS[i % CLOUD_ASSETS.length]}
+            alt="cloud"
+            className="absolute select-none pointer-events-none filter blur-[2px]"
+            style={{
+              width: `${400 + Math.random() * 400}px`,
+              top: `${Math.random() * 80}%`,
+              left: '-40vw',
+              opacity: 0.6 + Math.random() * 0.4
+            }}
+          />
+        ))}
+      </div>
+
+      {/* FOREGROUND CLOUDS (In front of Text) */}
+      <div ref={fgCloudsRef} className="absolute inset-0 pointer-events-none z-30">
+        {[...Array(4)].map((_, i) => (
+          <img 
+            key={`fg-${i}`}
+            src={CLOUD_ASSETS[(i + 2) % CLOUD_ASSETS.length]}
+            alt="cloud"
+            className="absolute select-none pointer-events-none"
+            style={{
+              width: `${600 + Math.random() * 400}px`,
+              top: `${10 + Math.random() * 80}%`,
+              left: '-50vw',
+              opacity: 0.8 + Math.random() * 0.2,
+              filter: 'brightness(1.1) contrast(0.9)'
+            }}
+          />
+        ))}
+      </div>
+
       {/* Decorative background elements */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
@@ -24,7 +114,7 @@ const Introduction: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div ref={textRef} className="relative z-10 text-center px-6 max-w-4xl">
+      <div ref={textRef} className="relative z-10 text-center px-6 max-w-4xl mix-blend-overlay">
         <h2 className="colence-font text-5xl md:text-7xl lg:text-8xl text-[#1e3040] mb-8 leading-tight">
           Cherin's Journey
         </h2>
@@ -70,6 +160,15 @@ const Introduction: React.FC = () => {
         .colence-font {
           font-family: 'Colence', serif;
           font-style: normal;
+        }
+        /* Create a soft atmospheric haze */
+        section::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at center, transparent 0%, rgba(255,255,255,0.2) 100%);
+          pointer-events: none;
+          z-index: 25;
         }
       `}</style>
     </section>
