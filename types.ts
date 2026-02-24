@@ -17,7 +17,7 @@ export interface CityData {
 }
 
 export enum JourneyStop {
-  VIRGINIA = 'VIRGINIA',
+  VIRGINIA = 'RICHMOND',
   SEOUL = 'SEOUL',
   LA = 'LA'
 }

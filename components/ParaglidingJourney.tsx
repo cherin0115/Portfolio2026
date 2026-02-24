@@ -1,21 +1,39 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { PROJECTS, CITY_HUB } from '../constants';
 import { JourneyStop, Project as ProjectType } from '../types';
+import richmondBg from '../assets/richmond_ref2.png';
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface ParaglidingJourneyProps {
   onUpdateHud: (data: any) => void;
   onProjectClick: (project: ProjectType) => void;
 }
 
+const VA_PROJECTS = PROJECTS.filter(p => p.id.startsWith('VA'));
+
+// Dot positions as % of the image overlay area (w-[100vw] h-[70%] bottom-0)
+const VA_DOT_POSITIONS = [
+  { id: 'VA-01', x: 35, y: 50 },
+  { id: 'VA-02', x: 79, y: 24 },
+  { id: 'VA-03', x: 112, y: 70 },
+  { id: 'VA-04', x: 150, y: 34 },
+];
+
 const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, onProjectClick }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const characterRef = useRef<HTMLDivElement>(null);
+  const [activeDot, setActiveDot] = useState<string | null>(null);
+  const [hoveredDot, setHoveredDot] = useState<string | null>(null);
 
   useEffect(() => {
+    let handleMouseMove: ((e: MouseEvent) => void) | null = null;
+    let tickerFn: (() => void) | null = null;
+
     const ctx = gsap.context(() => {
       // The "Snake" World Timeline - Handles the background movement
       const tl = gsap.timeline({
@@ -54,10 +72,7 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
       const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       const pos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       
-      const xSet = gsap.quickSetter(characterRef.current, "x", "px");
-      const ySet = gsap.quickSetter(characterRef.current, "y", "px");
-
-      const handleMouseMove = (e: MouseEvent) => {
+      handleMouseMove = (e: MouseEvent) => {
         mouse.x = e.clientX;
         mouse.y = e.clientY;
       };
@@ -65,19 +80,21 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
       window.addEventListener("mousemove", handleMouseMove);
 
       // Animation ticker for smooth following (lerp)
-      gsap.ticker.add(() => {
-        const dt = 1.0 - Math.pow(1.0 - 0.08, gsap.ticker.deltaRatio()); 
+      tickerFn = () => {
+        const dt = 1.0 - Math.pow(1.0 - 0.08, gsap.ticker.deltaRatio());
         pos.x += (mouse.x - pos.x) * dt;
         pos.y += (mouse.y - pos.y) * dt;
-        
+
         // Add a slight tilt based on horizontal speed
         const rotation = (mouse.x - pos.x) * 0.2;
-        gsap.set(characterRef.current, { 
+        gsap.set(characterRef.current, {
           rotation: rotation,
           x: pos.x - (characterRef.current?.offsetWidth || 0) / 2,
-          y: pos.y - (characterRef.current?.offsetHeight || 0) / 2
+          y: pos.y - (characterRef.current?.offsetHeight || 0) / 2,
         });
-      });
+      };
+
+      gsap.ticker.add(tickerFn);
 
       // Bobbing effect combined with mouse position
       gsap.to(characterRef.current, {
@@ -90,7 +107,11 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
 
     }, containerRef);
 
-    return () => ctx.revert();
+    return () => {
+      if (handleMouseMove) window.removeEventListener('mousemove', handleMouseMove);
+      if (tickerFn) gsap.ticker.remove(tickerFn);
+      ctx.revert();
+    };
   }, []);
 
   return (
@@ -99,16 +120,87 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
       <div ref={worldRef} className="absolute top-0 left-0 w-[400vw] h-[300vh] flex flex-col">
         
         {/* ROW 1: VIRGINIA */}
-        <div className="flex w-full h-[100vh]">
-          <CitySection 
-            city="Virginia" 
-            accent="#58aa5a" 
-            bgGradient="from-[#a0d4f2] to-[#c0e8fa]" 
-            projects={PROJECTS.filter(p => p.id.startsWith('VA'))} 
+        <div className="flex w-full h-[100vh] relative">
+          {/* Richmond cityscape: bottom 70%, spans Virginia + transition corridor */}
+          <img
+            src={richmondBg}
+            alt=""
+            className="absolute bottom-0 left-0 w-[200vw] h-[70%] object-contain object-bottom pointer-events-none select-none"
+            style={{ filter: 'brightness(1.3) saturate(1.1)' }}
+          />
+          {/* Sky-to-city soft blend edge */}
+          <div
+            className="absolute left-0 w-[200vw] pointer-events-none"
+            style={{ bottom: '70%', height: '100px', background: 'linear-gradient(to bottom, #c0e8fa, transparent)' }}
+          />
+
+          {/* Virginia sky gradient — transparent at bottom so Richmond shows through */}
+          <CitySection
+            city="Virginia"
+            accent="#58aa5a"
+            bgGradient="from-[#a0d4f2] to-transparent"
+            projects={[]}
             onProjectClick={onProjectClick}
           />
-          <div className="w-[100vw] h-full bg-gradient-to-r from-[#c0e8fa] to-[#07091e]" />
+          <div className="w-[100vw] h-full bg-gradient-to-r from-transparent to-[#07091e]" />
+
+          {/* Interactive dots — rendered LAST so they sit above CitySection */}
+          <div className="absolute bottom-0 left-0 w-[100vw] h-[70%] z-20 pointer-events-none">
+            {VA_DOT_POSITIONS.map(({ id, x, y }) => {
+              const project = VA_PROJECTS.find(p => p.id === id);
+              if (!project) return null;
+              const isActive = activeDot === id;
+              const isHovered = hoveredDot === id;
+              return (
+                <div key={id} className="absolute pointer-events-none" style={{ left: `${x}%`, top: `${y}%` }}>
+                  {/* Popup card — opens upward from the dot */}
+                  {isActive && (
+                    <div
+                      className="absolute w-60 bg-[#0d1b2a]/95 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-2xl z-30 pointer-events-auto"
+                      style={{ bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)' }}
+                    >
+                      <div className="relative">
+                        <img src={project.thumbnail} alt={project.title} className="w-full h-32 object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2a] via-transparent to-transparent" />
+                      </div>
+                      <div className="p-4">
+                        <span className="font-mono text-[9px] uppercase tracking-widest text-[#58aa5a]">{project.category}</span>
+                        <h5 className="font-serif text-base font-bold text-white mt-1 leading-tight">{project.title}</h5>
+                        <p className="font-mono text-[10px] text-white/50 mt-2 leading-relaxed">{project.description}</p>
+                        <div className="mt-3 flex flex-wrap gap-1">
+                          {project.tags.map(t => (
+                            <span key={t} className="font-mono text-[8px] border border-white/20 px-2 py-0.5 rounded-full text-white/60">{t}</span>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => { setActiveDot(null); onProjectClick(project); }}
+                          className="mt-4 w-full font-mono text-[9px] uppercase tracking-wider bg-[#58aa5a] hover:bg-[#6abb6c] text-white py-2 rounded-lg transition-colors"
+                        >
+                          View Full Project →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {/* Invisible proximity zone (80×80px) centred on the dot */}
+                  <div
+                    className="absolute pointer-events-auto"
+                    style={{ width: 80, height: 80, top: -30, left: -30 }}
+                    onMouseEnter={() => setHoveredDot(id)}
+                    onMouseLeave={() => setHoveredDot(null)}
+                    onClick={() => setActiveDot(isActive ? null : id)}
+                  >
+                    {/* Dot centred inside proximity zone */}
+                    <span className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 cursor-pointer ${isHovered ? 'dot-float' : ''}`}>
+                      <span className="absolute inset-0 rounded-full bg-[#58aa5a] opacity-50 animate-ping" />
+                      <span className="relative block w-5 h-5 rounded-full bg-[#58aa5a] border-2 border-white shadow-lg" />
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
 
         {/* ROW 2: SEOUL */}
         <div className="flex w-full h-[100vh]">
@@ -136,22 +228,32 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
         </div>
       </div>
 
+      <style>{`
+        @keyframes dot-float {
+          0%,  100% { transform: translate(-50%, -50%) translateY(0px)   scale(1);    }
+          50%        { transform: translate(-50%, -50%) translateY(-8px)  scale(1.15); }
+        }
+        .dot-float {
+          animation: dot-float 1.4s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* Paraglider (Now follows mouse cursor) */}
       <div 
         ref={characterRef}
         className="fixed top-0 left-0 z-[60] w-32 md:w-48 pointer-events-none drop-shadow-2xl will-change-transform"
         style={{ transform: 'translate(-50%, -50%)' }}
       >
-        <ParagliderSVG />
+        <img src="/assets/Artboard 9.png" alt="Paraglider" className="w-full h-full object-contain" />
       </div>
     </div>
   );
 };
 
-const CitySection: React.FC<{ 
-  city: string; 
-  accent: string; 
-  bgGradient: string; 
+const CitySection: React.FC<{
+  city: string;
+  accent: string;
+  bgGradient: string;
   projects: ProjectType[];
   onProjectClick: (p: ProjectType) => void;
 }> = ({ city, accent, bgGradient, projects, onProjectClick }) => (
@@ -166,8 +268,9 @@ const CitySection: React.FC<{
         <p className="font-mono text-[10px] uppercase tracking-widest text-white/50 mt-2">Interactive Showcase</p>
       </header>
 
-      <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide">
-        {projects.map((p) => (
+      {projects.length > 0 && (
+        <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide">
+          {projects.map((p) => (
           <div 
             key={p.id}
             onClick={() => onProjectClick(p)}
@@ -187,25 +290,11 @@ const CitySection: React.FC<{
               </div>
             </div>
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   </div>
-);
-
-const ParagliderSVG = () => (
-  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M5 50 C 5 15, 95 15, 95 50" stroke="white" strokeWidth="2.5" fill="white" fillOpacity="0.15" />
-    <path d="M10 50 L 50 82 L 90 50" stroke="white" strokeWidth="0.8" strokeDasharray="2 2" />
-    <circle cx="50" cy="85" r="4" fill="white" />
-    <path d="M48 89 L 45 96 M 52 89 L 55 96" stroke="white" strokeWidth="2" strokeLinecap="round" />
-    <rect x="47" y="81" width="6" height="4" rx="1" fill="white" />
-    <g opacity="0.6">
-      <line x1="10" y1="40" x2="0" y2="40" stroke="white" strokeWidth="0.5">
-        <animate attributeName="stroke-dashoffset" from="20" to="0" dur="0.5s" repeatCount="indefinite" />
-      </line>
-    </g>
-  </svg>
 );
 
 export default ParaglidingJourney;

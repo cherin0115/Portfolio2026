@@ -122,6 +122,9 @@ const Landing: React.FC = () => {
         ))}
       </div>
 
+      {/* Seamless blend into Introduction */}
+      <div className="absolute bottom-0 left-0 w-full h-[35vh] bg-gradient-to-b from-transparent to-[#d8f4fe] pointer-events-none z-[55]" />
+
       {/* Scroll Hint */}
       <div className="absolute bottom-12 z-40 flex flex-col items-center gap-3 opacity-40 group cursor-default">
         <span className="font-mono text-[9px] uppercase tracking-[0.4em] text-[#1e3040]">Initiate Descent</span>

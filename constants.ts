@@ -81,7 +81,7 @@ export const PROJECTS: Project[] = [
 
 export const CITY_HUB: Record<JourneyStop, CityData> = {
   [JourneyStop.VIRGINIA]: {
-    name: 'Glen Allen, VA',
+    name: 'Richmond, VA',
     coords: '37.6660° N, 77.4605° W',
     altitude: 120,
     temperature: '22°C',

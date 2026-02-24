@@ -68,7 +68,7 @@ const Introduction: React.FC = () => {
   }, []);
 
   return (
-    <section className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#d8f4fe] via-[#a0d4f2] to-[#7db6d6]">
+    <section className="relative -mt-px h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#d8f4fe] via-[#a0d4f2] to-[#7db6d6]">
       
       {/* BACKGROUND CLOUDS (Behind Text) */}
       <div ref={bgCloudsRef} className="absolute inset-0 pointer-events-none opacity-60">
@@ -114,12 +114,12 @@ const Introduction: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div ref={textRef} className="relative z-10 text-center px-6 max-w-4xl mix-blend-overlay">
-        <h2 className="colence-font text-5xl md:text-7xl lg:text-8xl text-[#1e3040] mb-8 leading-tight">
+      <div ref={textRef} className="relative z-10 text-center px-6 max-w-4xl mix-blend-overlay text-[#071F35]">
+        <h2 className="colence-font text-5xl md:text-7xl lg:text-8xl mb-8 leading-tight text-[#071F35]">
           Cherin's Journey
         </h2>
         
-        <p className="font-serif italic text-lg md:text-2xl text-[#2c4a5c] mb-6 leading-relaxed">
+        <p className="font-serif italic text-lg md:text-2xl text-[#071F35] mb-6 leading-relaxed">
           A design thinker and creative problem solver. 
           <span><br></br>Through paragliding across three cities; Richmond, Seoul, and Los Angeles.</span>
           <span><br></br>I've crafted a portfolio that captures the essence of my design philosophy.</span>
@@ -127,7 +127,7 @@ const Introduction: React.FC = () => {
 
         <div className="mt-12 flex flex-col md:flex-row gap-8 justify-center items-center">
           <div className="flex-1">
-            <p className="font-mono text-xs uppercase tracking-widest text-[#1e3040]/60 mb-3">Specialties</p>
+            <p className="font-mono text-xs uppercase tracking-widest text-[#071F35]/60 mb-3">Specialties</p>
             <ul className="font-serif text-[#1e3040] space-y-2">
               <li>✦ User Experience Design</li>
               <li>✦ Visual Storytelling</li>
@@ -138,7 +138,7 @@ const Introduction: React.FC = () => {
           <div className="h-32 md:h-48 w-px bg-gradient-to-b from-transparent via-[#1e3040]/30 to-transparent"></div>
 
           <div className="flex-1">
-            <p className="font-mono text-xs uppercase tracking-widest text-[#1e3040]/60 mb-3">Approach</p>
+            <p className="font-mono text-xs uppercase tracking-widest text-[#071F35]/60 mb-3">Approach</p>
             <ul className="font-serif text-[#1e3040] space-y-2">
               <li>✦ Data-Driven Design</li>
               <li>✦ Human-Centered Solutions</li>
@@ -147,7 +147,7 @@ const Introduction: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-12 font-mono text-xs uppercase tracking-[0.2em] text-[#1e3040]/40">
+        <div className="mt-12 font-mono text-xs uppercase tracking-[0.2em] text-[#071F35]/40">
           Scroll to begin the expedition
         </div>
       </div>
