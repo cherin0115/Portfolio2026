@@ -22,10 +22,25 @@ const App: React.FC = () => {
   });
 
   const mainRef = useRef<HTMLDivElement>(null);
+  const savedScrollY = useRef(0);
 
   const handleProjectClick = (project: Project) => {
     if (project.id === 'VA-01') {
-      setIsHudOpen(true);
+      savedScrollY.current = window.scrollY;
+      const tl = gsap.timeline();
+      tl.set('.wipe-overlay', { scale: 0, opacity: 1 });
+      tl.to('.wipe-overlay', {
+        scale: 1,
+        duration: 0.8,
+        ease: 'power4.inOut',
+        onComplete: () => setIsHudOpen(true),
+      })
+      .to('.wipe-overlay', {
+        scale: 5,
+        opacity: 0,
+        duration: 0.8,
+        ease: 'power4.out',
+      });
       return;
     }
 
@@ -45,6 +60,26 @@ const App: React.FC = () => {
       opacity: 0,
       duration: 0.8,
       ease: 'power4.out'
+    });
+  };
+
+  const closeHud = () => {
+    const tl = gsap.timeline();
+    tl.set('.wipe-overlay', { scale: 0, opacity: 1 });
+    tl.to('.wipe-overlay', {
+      scale: 1,
+      duration: 0.6,
+      ease: 'power4.inOut',
+      onComplete: () => {
+        setIsHudOpen(false);
+        window.scrollTo(0, savedScrollY.current);
+      },
+    })
+    .to('.wipe-overlay', {
+      scale: 5,
+      opacity: 0,
+      duration: 0.6,
+      ease: 'power4.out',
     });
   };
 
@@ -73,7 +108,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div ref={mainRef} className={selectedProject ? 'hidden' : 'block'}>
+      <div ref={mainRef} className={selectedProject || isHudOpen ? 'hidden' : 'block'}>
         <Landing />
         <Introduction />
         <ParaglidingJourney
@@ -87,11 +122,11 @@ const App: React.FC = () => {
         <ProjectDetail project={selectedProject} onClose={closeProject} />
       )}
 
-      {/* Adaptive HUD Case Study Modal */}
+      {/* Adaptive HUD Case Study */}
       {isHudOpen && (
         <div className="fixed inset-0 z-[9998] bg-[#07091e] overflow-y-auto">
           <button
-            onClick={() => setIsHudOpen(false)}
+            onClick={closeHud}
             className="fixed top-6 right-8 z-[10000] text-white/60 hover:text-white font-mono text-2xl leading-none transition-colors"
             aria-label="Close"
           >
