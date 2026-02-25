@@ -2,10 +2,10 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 
-import cloud1 from '../assets/Realistic Clouds Overlay 1.png';
-import cloud2 from '../assets/Realistic Clouds Overlay 2.png';
-import cloud3 from '../assets/Realistic Clouds Overlay 3.png';
-import cloud4 from '../assets/Realistic Clouds Overlay 4.png';
+import cloud1 from '../assets/Cloud/Realistic Clouds Overlay 1.png';
+import cloud2 from '../assets/Cloud/Realistic Clouds Overlay 2.png';
+import cloud3 from '../assets/Cloud/Realistic Clouds Overlay 3.png';
+import cloud4 from '../assets/Cloud/Realistic Clouds Overlay 4.png';
 
 const CLOUD_ASSETS = [cloud1, cloud2, cloud3, cloud4];
 
