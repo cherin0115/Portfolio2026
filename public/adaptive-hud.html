@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive HUD Ecosystem — Case Study</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Space+Mono:wght@400;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green: #7ecb45;
+  --bg: #0c0c0c;
+  --bg2: #141414;
+  --bg3: #1c1c1c;
+  --border: rgba(255,255,255,0.08);
+  --text: #d8d8d8;
+  --text-dim: #787878;
+  --text-muted: #555;
+  --yellow: #f0b429;
+  --red: #e05252;
+  --blue: #4ea8de;
+  --card-bg: #111111;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+
+/* ── HERO / COVER ── */
+.cover {
+  position: relative;
+  background: #0a100a;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* Dashboard scene */
+.dashboard-scene {
+  width: 100%;
+  height: 420px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1a2a0a 0%, #0d1a05 30%, #0a1208 60%, #070e06 100%);
+}
+
+/* Windshield frame */
+.windshield-frame {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+}
+.windshield-top {
+  flex: 1;
+  background: linear-gradient(180deg, #1e2a10 0%, #152010 50%, #0f1a08 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Trees on sides */
+.trees-left, .trees-right {
+  position: absolute; top: 0; bottom: 0; width: 28%;
+  background: linear-gradient(180deg, #1a2808 0%, #0e1a05 100%);
+}
+.trees-left { left: 0; clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%); }
+.trees-right { right: 0; clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%); }
+
+/* Road/sky center */
+.road-view {
+  position: absolute; left: 20%; right: 20%; top: 0; bottom: 0;
+  background: linear-gradient(180deg, #8faa6a 0%, #6a8a45 20%, #4a6a25 40%, #354a18 65%, #252e10 80%, #1a2008 100%);
+}
+.road-line-center {
+  position: absolute; left: 50%; bottom: 0; top: 50%;
+  width: 3px; transform: translateX(-50%);
+  background: linear-gradient(to bottom, transparent 0%, rgba(255,255,0,0.25) 100%);
+}
+
+/* Steering wheel */
+.steering-wheel-wrap {
+  position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%);
+  width: 280px; height: 280px;
+}
+.steering-wheel {
+  width: 100%; height: 100%; border-radius: 50%;
+  border: 18px solid #2a2520;
+  background: radial-gradient(circle at 50% 50%, #3a3228 0%, #1e1a16 60%, #0f0d0a 100%);
+  position: relative;
+  box-shadow: 0 -20px 60px rgba(0,0,0,0.8), inset 0 2px 8px rgba(255,255,255,0.03);
+}
+.steering-spoke {
+  position: absolute; background: #2a2520;
+  top: 50%; left: 50%; transform-origin: 0 0;
+}
+.spoke-v { width: 16px; height: 80px; left: -8px; top: 0; transform: translateY(0); border-radius: 4px; }
+.spoke-h { width: 80px; height: 16px; top: -8px; left: -80px; border-radius: 4px; }
+.spoke-hr { width: 80px; height: 16px; top: -8px; left: 0; border-radius: 4px; }
+.sw-center {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 60px; height: 40px; border-radius: 8px;
+  background: #1a1612; border: 1px solid rgba(255,255,255,0.05);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--text-muted); letter-spacing: 0.1em;
+}
+
+/* Dashboard bar */
+.dashboard-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
+  background: linear-gradient(180deg, #1a1510 0%, #0e0c08 100%);
+  border-top: 1px solid rgba(255,255,255,0.04);
+  display: flex; align-items: center; padding: 0 40px; gap: 24px;
+}
+.dash-vent {
+  width: 60px; height: 28px; border-radius: 4px;
+  background: #1e1a14; border: 1px solid rgba(255,255,255,0.06);
+  display: grid; grid-template-rows: repeat(3,1fr); gap: 3px; padding: 4px;
+}
+.dash-vent-line { background: #2a2520; border-radius: 1px; }
+
+/* Play button */
+.play-btn {
+  position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%);
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.25);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .2s;
+  z-index: 10;
+}
+.play-btn:hover { background: rgba(255,255,255,0.25); }
+.play-btn svg { margin-left: 3px; }
+
+/* HUD Simulation panel */
+.hud-panel {
+  position: absolute; top: 20px; right: 24px;
+  background: rgba(8,12,8,0.88); border: 1px solid rgba(126,203,69,0.2);
+  border-radius: 10px; padding: 14px 16px; min-width: 200px;
+  backdrop-filter: blur(8px);
+}
+.hud-panel-title { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+.hud-panel-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; }
+.hud-panel-label { font-size: 10px; color: var(--text-muted); }
+.hud-panel-btns { display: flex; gap: 4px; }
+.hud-panel-btn {
+  width: 22px; height: 16px; border-radius: 3px; border: none; cursor: pointer;
+  font-size: 8px; display: flex; align-items: center; justify-content: center;
+}
+.hud-panel-divider { height: 1px; background: var(--border); margin: 10px 0; }
+.hud-panel-icons { display: flex; gap: 8px; align-items: center; }
+.hud-icon { width: 20px; height: 20px; border-radius: 4px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; }
+
+/* Speed indicator bottom */
+.speed-overlay {
+  position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(126,203,69,0.2);
+  border-radius: 20px; padding: 5px 16px; backdrop-filter: blur(6px);
+}
+.speed-overlay-val { font-family: 'Space Mono', monospace; font-size: 18px; color: var(--green); font-weight: 700; }
+.speed-overlay-unit { font-size: 10px; color: var(--text-dim); }
+
+/* ── ARTICLE HEADER ── */
+.article-header {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
+  padding: 40px 48px 48px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.article-header-left h1 {
+  font-size: 28px; font-weight: 800; letter-spacing: -0.02em;
+  line-height: 1.15; margin-bottom: 14px; color: #e8e8e8;
+}
+.article-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.article-tag {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  color: var(--green); text-transform: uppercase;
+  background: rgba(126,203,69,0.07); border: 1px solid rgba(126,203,69,0.18);
+  border-radius: 4px; padding: 3px 8px;
+}
+.article-meta { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.article-header-right { padding-top: 4px; }
+.article-header-right p {
+  font-size: 13px; line-height: 1.75; color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+/* ── MAIN CONTENT ── */
+.content-wrap { max-width: 1120px; margin: 0 auto; }
+
+/* ── SECTION: DATA DRIVEN ── */
+.section {
+  padding: 60px 48px;
+  border-bottom: 1px solid var(--border);
+}
+.section-header { margin-bottom: 32px; }
+.section-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 8px;
+}
+.section-title {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #e0e0e0;
+}
+.section-subtitle {
+  font-size: 13px; color: var(--text-dim); margin-top: 6px; line-height: 1.6; max-width: 560px;
+}
+
+/* Data cards grid */
+.data-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.data-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px;
+}
+
+/* Complaint card */
+.complaint-card { }
+.cc-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+}
+.cc-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(240,180,41,0.1); border: 1px solid rgba(240,180,41,0.25);
+  border-radius: 6px; padding: 4px 10px;
+  font-size: 10px; font-weight: 700; color: var(--yellow); letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cc-rank {
+  font-family: 'Space Mono', monospace; font-size: 52px; font-weight: 700;
+  color: var(--yellow); line-height: 1; margin-bottom: 4px;
+}
+.cc-rank-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 16px;
+}
+.cc-quote {
+  border-left: 2px solid var(--green);
+  padding-left: 14px;
+  font-size: 13px; line-height: 1.65; color: var(--text);
+  font-style: italic;
+}
+.cc-source { font-size: 10px; color: var(--text-muted); margin-top: 12px; }
+.cc-source span { color: var(--text-dim); }
+
+/* Testimonial card */
+.t-card { display: flex; flex-direction: column; gap: 14px; }
+.t-user { display: flex; align-items: center; gap: 10px; }
+.t-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, #4a7f2c, #7ecb45);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #0a0a0a; flex-shrink: 0;
+}
+.t-name { font-size: 13px; font-weight: 600; color: #d0d0d0; }
+.t-handle { font-size: 10px; color: var(--text-muted); }
+.t-body {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px; padding: 14px 16px;
+  font-size: 13px; line-height: 1.65; color: var(--text);
+}
+.t-body .highlight { color: var(--green); font-weight: 600; }
+.t-meta { font-size: 10px; color: var(--text-muted); }
+.t-stars { color: var(--yellow); font-size: 10px; margin-bottom: 2px; }
+
+/* Distraction banner */
+.distract-banner {
+  margin-top: 16px; grid-column: 1/-1;
+  background: var(--card-bg); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px; padding: 32px 40px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.distract-banner h2 {
+  font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: #e8e8e8;
+  margin-bottom: 8px;
+}
+.distract-banner p {
+  font-size: 12px; color: var(--text-dim); max-width: 440px; line-height: 1.65;
+}
+
+/* ── DESIGN LOGIC ── */
+.design-grid {
+  display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; align-items: start;
+}
+
+/* Fovea diagram */
+.fovea-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.fovea-screen {
+  height: 200px; background: #0a120a;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.fovea-grid-lines {
+  position: absolute; inset: 0;
+  background-image: 
+    linear-gradient(rgba(126,203,69,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126,203,69,0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.fovea-circles { position: relative; z-index: 2; }
+.fovea-circle {
+  border-radius: 50%; border: 1px solid rgba(126,203,69,0.25);
+  display: flex; align-items: center; justify-content: center;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+}
+.fc1 { width: 36px; height: 36px; border-color: var(--green); background: rgba(126,203,69,0.12); }
+.fc2 { width: 88px; height: 88px; border-color: rgba(126,203,69,0.3); }
+.fc3 { width: 152px; height: 152px; border-color: rgba(126,203,69,0.15); }
+.fc4 { width: 200px; height: 200px; border-color: rgba(126,203,69,0.07); }
+
+.fovea-labels {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 6px; z-index: 3;
+}
+.fovea-label-item {
+  display: flex; align-items: center; gap: 6px; font-size: 8px; color: var(--text-muted);
+}
+.fovea-label-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+.fovea-zones {
+  position: absolute; left: 12px; bottom: 12px; z-index: 3;
+}
+.fz-item { font-size: 8px; color: var(--text-muted); margin-bottom: 2px; }
+.fz-item span { color: var(--green); }
+
+.fovea-body { padding: 16px 18px; }
+.fovea-body h4 { font-size: 13px; font-weight: 700; color: #d0d0d0; margin-bottom: 6px; }
+.fovea-body p { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+
+/* Power of 6 + chromatic cards */
+.design-side { display: flex; flex-direction: column; gap: 16px; }
+.design-side-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.power6-card {
+  background: #0a140a; border: 1px solid rgba(126,203,69,0.2);
+  border-radius: 12px; padding: 20px;
+}
+.p6-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.p6-icon {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: rgba(126,203,69,0.12); border: 1px solid rgba(126,203,69,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.p6-num-wrap { text-align: center; margin-bottom: 8px; }
+.p6-num {
+  font-family: 'Space Mono', monospace; font-size: 60px; font-weight: 700;
+  color: var(--green); line-height: 1; display: block;
+}
+.p6-arrows {
+  display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;
+}
+.p6-arrow { font-size: 18px; color: rgba(126,203,69,0.6); }
+.p6-body h4 { font-size: 12px; font-weight: 700; color: #c0c0c0; margin-bottom: 5px; }
+.p6-body p { font-size: 10px; color: var(--text-dim); line-height: 1.55; }
+
+.chroma-card {
+  background: #0a140a; border: 1px solid rgba(126,203,69,0.2);
+  border-radius: 12px; padding: 20px;
+}
+.chroma-tabs {
+  display: flex; gap: 4px; margin-bottom: 12px;
+}
+.chroma-tab {
+  font-size: 9px; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+  cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase;
+  border: 1px solid var(--border);
+}
+.chroma-tab.active { background: rgba(126,203,69,0.15); border-color: var(--green); color: var(--green); }
+.chroma-tab:not(.active) { color: var(--text-muted); }
+
+.chroma-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.chroma-swatch {
+  height: 28px; border-radius: 6px; position: relative;
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;
+}
+.chroma-swatch span { font-size: 8px; font-weight: 600; color: rgba(0,0,0,0.7); }
+
+.chroma-body h4 { font-size: 12px; font-weight: 700; color: #c0c0c0; margin-bottom: 5px; }
+.chroma-body p { font-size: 10px; color: var(--text-dim); line-height: 1.55; }
+
+/* ── REAL-TIME ADAPTATION ── */
+.adaptation-intro { font-size: 13px; color: var(--text-dim); max-width: 560px; margin-bottom: 24px; line-height: 1.65; }
+
+.adapt-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.adapt-tab {
+  padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-dim); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all .2s; font-family: inherit;
+}
+.adapt-tab.active { background: var(--green); border-color: var(--green); color: #0a0a0a; font-weight: 700; }
+.adapt-tab:hover:not(.active) { border-color: rgba(255,255,255,0.15); color: var(--text); }
+
+/* Road scene image */
+.road-scene-img {
+  width: 100%; border-radius: 10px; overflow: hidden;
+  height: 300px; position: relative;
+  background: linear-gradient(180deg, #6a8840 0%, #4a6020 30%, #2e3e12 60%, #1c2808 80%, #0f1804 100%);
+  border: 1px solid var(--border);
+}
+
+/* Trees scene */
+.scene-trees-l, .scene-trees-r {
+  position: absolute; top: 0; bottom: 0; width: 35%;
+  background: linear-gradient(180deg, #1a2808 0%, #0e1a05 100%);
+}
+.scene-trees-l { left: 0; clip-path: polygon(0 0, 100% 0, 78% 100%, 0 100%); }
+.scene-trees-r { right: 0; clip-path: polygon(22% 0, 100% 0, 100% 100%, 0 100%); }
+
+.scene-sky {
+  position: absolute; top: 0; left: 25%; right: 25%; height: 45%;
+  background: linear-gradient(180deg, #8aa060 0%, #6a8040 50%, transparent 100%);
+}
+.scene-road {
+  position: absolute; bottom: 0; left: 30%; right: 30%; height: 55%;
+  background: linear-gradient(180deg, #2a3818 0%, #1e2810 100%);
+  clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%);
+}
+
+/* HUD speed on road */
+.scene-hud-bar {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,0,0,0.65); border: 1px solid rgba(126,203,69,0.3);
+  border-radius: 20px; padding: 7px 20px; backdrop-filter: blur(6px);
+}
+.scene-hud-speed { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; color: var(--green); }
+.scene-hud-unit { font-size: 10px; color: var(--text-dim); }
+.scene-hud-label {
+  background: rgba(126,203,69,0.1); border: 1px solid rgba(126,203,69,0.2);
+  border-radius: 4px; padding: 3px 8px; font-size: 9px; color: var(--green); letter-spacing: 0.06em;
+}
+
+/* Nav mini on road */
+.scene-nav {
+  position: absolute; bottom: 68px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px; padding: 5px 14px; font-size: 10px; color: var(--text-dim);
+  backdrop-filter: blur(4px); white-space: nowrap;
+}
+
+.adapt-caption {
+  margin-top: 20px;
+}
+.adapt-caption h4 { font-size: 14px; font-weight: 700; color: #d8d8d8; margin-bottom: 10px; }
+.adapt-bullets { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.adapt-bullets li {
+  font-size: 12px; color: var(--text-dim); padding-left: 16px; position: relative; line-height: 1.5;
+}
+.adapt-bullets li::before {
+  content: '•'; position: absolute; left: 0; color: var(--green); font-size: 14px; top: -1px;
+}
+
+/* ── SOLVING INTERACTION LOGIC ── */
+.interaction-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.inter-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  transition: border-color .3s;
+}
+.inter-card:hover { border-color: rgba(126,203,69,0.25); }
+
+.inter-img {
+  height: 200px; position: relative; overflow: hidden;
+}
+
+/* City night scene */
+.city-scene {
+  background: linear-gradient(160deg, #080d18 0%, #05080f 100%);
+  display: flex; align-items: flex-end; padding: 0 16px 0;
+}
+.city-skyline { display: flex; align-items: flex-end; gap: 3px; height: 140px; position: relative; }
+.b { display: flex; flex-direction: column; justify-content: flex-start; padding: 4px 3px; gap: 3px; border-radius: 2px 2px 0 0; }
+.bw { width: 5px; height: 5px; border-radius: 1px; }
+.b-on { background: rgba(245,194,66,0.55); }
+.b-off { background: rgba(255,255,255,0.04); }
+.b-blue { background: rgba(78,168,222,0.4); }
+
+/* Glowing HUD on city scene */
+.city-hud-overlay {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.75); border: 1px solid rgba(126,203,69,0.4);
+  border-radius: 8px; padding: 7px 16px;
+  display: flex; align-items: center; gap: 12px; backdrop-filter: blur(4px);
+  box-shadow: 0 0 20px rgba(126,203,69,0.1);
+}
+.c-hud-spd { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--green); }
+.c-hud-nav { font-size: 9px; color: var(--text-dim); border-left: 1px solid var(--border); padding-left: 10px; }
+
+/* Fog road scene */
+.fog-scene {
+  background: linear-gradient(180deg, #b0bab0 0%, #909a90 100%);
+  position: relative; overflow: hidden;
+}
+.fog-road {
+  position: absolute; bottom: 0; left: 30%; right: 30%; height: 60%;
+  background: rgba(80,85,80,0.4);
+  clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%);
+}
+.fog-overlay-layer {
+  position: absolute; inset: 0;
+  background: rgba(160,170,160,0.4);
+}
+.fog-hud {
+  position: absolute; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
+  background: rgba(0,0,0,0.75); border: 2px solid rgba(126,203,69,0.6);
+  border-radius: 8px; padding: 10px 22px; z-index: 2;
+  font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700;
+  color: var(--green); box-shadow: 0 0 24px rgba(126,203,69,0.25), inset 0 0 12px rgba(126,203,69,0.05);
+}
+
+.inter-body { padding: 20px 22px; }
+.inter-num { font-size: 10px; font-weight: 700; color: var(--green); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.inter-title { font-size: 15px; font-weight: 700; color: #d0d0d0; margin-bottom: 10px; }
+.inter-desc { font-size: 12px; color: var(--text-dim); line-height: 1.7; }
+
+/* ── DEPLOYMENT / CODE SECTION ── */
+.deploy-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin-bottom: 32px;
+}
+
+/* Dashboard image left */
+.deploy-scene {
+  border-radius: 12px; overflow: hidden; height: 240px;
+  background: linear-gradient(160deg, #1a2a0a 0%, #0f1a05 40%, #0a1208 100%);
+  position: relative; border: 1px solid var(--border);
+}
+.deploy-scene-inner {
+  position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
+}
+.deploy-wheel {
+  width: 200px; height: 200px; border-radius: 50%;
+  border: 14px solid #2a2520; margin-bottom: -80px;
+  background: radial-gradient(circle at 50% 50%, #3a3228 0%, #1e1a16 60%, #0f0d0a 100%);
+  position: relative;
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
+}
+.deploy-dash-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+  background: linear-gradient(180deg, #181410 0%, #0e0c08 100%);
+  display: flex; align-items: center; padding: 0 24px; gap: 12px;
+}
+.deploy-vent { width: 44px; height: 22px; border-radius: 3px; background: #1e1a14; border: 1px solid rgba(255,255,255,0.04); }
+
+/* HUD dash panels */
+.deploy-hud-strip {
+  position: absolute; top: 16px; left: 16px; right: 16px;
+  background: rgba(0,0,0,0.65); border: 1px solid rgba(126,203,69,0.2);
+  border-radius: 8px; padding: 8px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  backdrop-filter: blur(6px);
+}
+.d-hud-speed { font-family: 'Space Mono', monospace; font-size: 20px; color: var(--green); font-weight: 700; }
+.d-hud-info { font-size: 9px; color: var(--text-dim); text-align: right; }
+
+/* Code panel right */
+.code-panel {
+  background: #0d0f0d; border: 1px solid rgba(126,203,69,0.12);
+  border-radius: 12px; overflow: hidden;
+  font-family: 'Space Mono', monospace; font-size: 11px;
+}
+.code-header {
+  background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border);
+  padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+}
+.code-dot { width: 8px; height: 8px; border-radius: 50%; }
+.code-filename { font-size: 10px; color: var(--text-muted); margin-left: 6px; }
+.code-body { padding: 16px; overflow-x: auto; }
+.code-line { display: flex; gap: 14px; margin-bottom: 3px; min-height: 17px; }
+.code-ln { color: var(--text-muted); min-width: 20px; text-align: right; font-size: 10px; user-select: none; }
+.code-kw { color: #c792ea; }
+.code-fn { color: #82aaff; }
+.code-str { color: #c3e88d; }
+.code-num { color: #f78c6c; }
+.code-cm { color: #546e7a; font-style: italic; }
+.code-prop { color: #80cbc4; }
+.code-punc { color: var(--text-dim); }
+.code-obj { color: #ffcb6b; }
+
+/* Deploy notes */
+.deploy-notes { }
+.deploy-note {
+  display: flex; gap: 12px; margin-bottom: 14px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.deploy-note:last-child { border-bottom: none; margin-bottom: 0; }
+.dn-label {
+  font-size: 10px; font-weight: 700; color: var(--green); letter-spacing: 0.08em;
+  text-transform: uppercase; min-width: 100px; padding-top: 1px; flex-shrink: 0;
+}
+.dn-text { font-size: 12px; color: var(--text-dim); line-height: 1.65; }
+
+/* ── CTA ── */
+.cta-section {
+  padding: 60px 48px;
+  background: linear-gradient(135deg, #0d180d 0%, var(--bg) 50%, #0d180d 100%);
+  display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: center;
+}
+.cta-img {
+  width: 180px; height: 120px; border-radius: 10px; overflow: hidden;
+  background: linear-gradient(135deg, #1a2a0a 0%, #0f1a05 100%);
+  position: relative; flex-shrink: 0; border: 1px solid var(--border);
+}
+.cta-wheel {
+  width: 100px; height: 100px; border-radius: 50%;
+  border: 9px solid #2a2520; position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
+  background: radial-gradient(circle, #3a3228 0%, #1e1a16 60%, #0f0d0a 100%);
+}
+.cta-road {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 40px;
+  background: linear-gradient(180deg, #151a08 0%, #0e1004 100%);
+}
+.cta-content h2 {
+  font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2;
+  color: #e8e8e8; margin-bottom: 10px;
+}
+.cta-content h2 em { color: var(--green); font-style: normal; }
+.cta-content p { font-size: 12px; color: var(--text-dim); line-height: 1.65; margin-bottom: 20px; max-width: 400px; }
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; padding: 10px 20px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: border-color .2s, color .2s; font-family: inherit;
+  text-decoration: none;
+}
+.cta-btn:hover { border-color: var(--green); color: var(--green); }
+.cta-btn svg { width: 14px; height: 14px; }
+
+/* Divider */
+.divider { height: 1px; background: var(--border); }
+
+/* Generic prose */
+.prose { font-size: 13px; color: var(--text-dim); line-height: 1.7; max-width: 640px; }
+.prose + .prose { margin-top: 12px; }
+
+/* Subtle label */
+.field-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+
+/* ── INTERACTIVE CARD ── */
+.interactive-card-wrap { margin: 32px 0; }
+.interactive-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(126,203,69,0.15);
+  border-radius: 16px;
+  padding: 32px;
+  cursor: pointer;
+  transition: all .3s;
+  position: relative;
+}
+.interactive-card:hover {
+  background: rgba(126,203,69,0.04);
+  border-color: rgba(126,203,69,0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.ic-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 12px;
+}
+.ic-title {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.02em;
+  color: #e8e8e8; margin-bottom: 12px;
+}
+.ic-desc {
+  font-size: 13px; color: var(--text-dim); line-height: 1.7;
+  margin-bottom: 16px; max-width: 600px;
+}
+.ic-hint {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--green); font-weight: 600;
+}
+.ic-hint svg { width: 12px; height: 12px; }
+
+/* ── MODAL OVERLAY ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.94);
+  backdrop-filter: blur(10px);
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 20px;
+  animation: modalFadeIn .25s ease;
+}
+.modal-overlay.visible { display: flex; }
+@keyframes modalFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.modal-content {
+  width: 100%; max-width: 1080px;
+  max-height: 95vh;
+  background: #0a0a0a;
+  border-radius: 20px;
+  border: 1px solid rgba(126,203,69,0.2);
+  overflow-y: auto;
+  position: relative;
+  animation: modalSlideUp .3s cubic-bezier(.2,.8,.3,1);
+  box-shadow: 0 20px 80px rgba(0,0,0,0.8);
+}
+@keyframes modalSlideUp {
+  0% { transform: translateY(40px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  position: sticky; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 24px;
+  background: linear-gradient(180deg, #0a0a0a 0%, rgba(10,10,10,0.98) 70%, transparent 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.modal-title {
+  font-size: 14px; font-weight: 700; color: var(--green);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.modal-close-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s;
+  color: rgba(255,255,255,0.5);
+  font-size: 18px; line-height: 1;
+}
+.modal-close-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(126,203,69,0.4);
+  color: var(--green);
+}
+
+.modal-body {
+  padding: 0;
+}
+#interactiveFrame {
+  width: 100%; min-height: 80vh; border: none;
+}
+
+.modal-content::-webkit-scrollbar { width: 8px; }
+.modal-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+.modal-content::-webkit-scrollbar-thumb { background: rgba(126,203,69,0.3); border-radius: 4px; }
+.modal-content::-webkit-scrollbar-thumb:hover { background: rgba(126,203,69,0.5); }
+
+@media (max-width: 768px) {
+  .article-header, .data-grid, .design-grid, .interaction-grid, .deploy-grid, .design-side-row { grid-template-columns: 1fr; }
+  .distract-banner { padding: 24px 20px; }
+  .section { padding: 40px 20px; }
+  .cta-section { grid-template-columns: 1fr; }
+  .cta-img { width: 100%; height: 80px; }
+}
+</style>
+</head>
+<body>
+
+
+
+<!-- COVER / HERO -->
+<div class="cover">
+  <div class="dashboard-scene">
+    <div class="windshield-frame">
+      <div class="windshield-top">
+        <!-- Trees -->
+        <div class="trees-left"></div>
+        <div class="trees-right"></div>
+        <!-- Road center -->
+        <div class="road-view">
+          <div class="road-line-center"></div>
+        </div>
+        <!-- Play button -->
+        <div class="play-btn">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M6 4l9 5-9 5V4z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard bar -->
+    <div class="dashboard-bar">
+      <div class="dash-vent"><div class="dash-vent-line"></div><div class="dash-vent-line"></div><div class="dash-vent-line"></div></div>
+      <div style="flex:1"></div>
+      <div class="dash-vent"><div class="dash-vent-line"></div><div class="dash-vent-line"></div><div class="dash-vent-line"></div></div>
+    </div>
+
+    <!-- Steering wheel -->
+    <div class="steering-wheel-wrap">
+      <div class="steering-wheel">
+        <div class="steering-spoke spoke-v"></div>
+        <div class="steering-spoke spoke-h"></div>
+        <div class="steering-spoke spoke-hr"></div>
+        <div class="sw-center">HUD</div>
+      </div>
+    </div>
+
+    <!-- HUD Panel top right -->
+    <div class="hud-panel">
+      <div class="hud-panel-title">HUD Simulation</div>
+      <div class="hud-panel-row">
+        <div class="hud-panel-label">Color mode</div>
+        <div class="hud-panel-btns">
+          <div class="hud-panel-btn" style="background:#7ecb45;color:#0a0a0a;font-size:7px;font-weight:700">HUD</div>
+          <div class="hud-panel-btn" style="background:rgba(255,255,255,0.06);color:#666;font-size:7px"></div>
+          <div class="hud-panel-btn" style="background:rgba(255,255,255,0.06);color:#666;font-size:7px"></div>
+        </div>
+      </div>
+      <div class="hud-panel-divider"></div>
+      <div class="hud-panel-row">
+        <div class="hud-panel-label">Elements</div>
+        <div class="hud-panel-icons">
+          <div class="hud-icon" style="color:var(--green);font-size:9px">⊞</div>
+          <div class="hud-icon" style="color:var(--text-muted);font-size:9px">◎</div>
+          <div class="hud-icon" style="color:var(--text-muted);font-size:9px">⊡</div>
+          <div class="hud-icon" style="color:var(--text-muted);font-size:9px">▲</div>
+        </div>
+      </div>
+      <div class="hud-panel-row">
+        <div style="font-size:9px;color:var(--text-muted)">Brightness</div>
+        <div style="font-size:9px;color:var(--green);font-family:'Space Mono',monospace">72%</div>
+      </div>
+    </div>
+
+    <!-- Speed -->
+    <div class="speed-overlay">
+      <div class="speed-overlay-val">68</div>
+      <div class="speed-overlay-unit">mph</div>
+    </div>
+  </div>
+
+  <!-- Article header -->
+  <div class="article-header">
+    <div class="article-header-left">
+      <h1>Adaptive HUD Ecosystem</h1>
+      <div class="article-tags">
+        <span class="article-tag">Automotive UX</span>
+        <span class="article-tag">Heads-Up Display</span>
+        <span class="article-tag">Vision Research</span>
+        <span class="article-tag">Prototyping</span>
+      </div>
+      <div class="article-meta">Category / Role — UX Design Research</div>
+    </div>
+    <div class="article-header-right">
+      <p>This project explores a fully adaptive heads-up display ecosystem for modern vehicles — one that responds intelligently to driving context, ambient conditions, and cognitive load in real time.</p>
+      <p>The system was designed with one constraint: never pull the driver's foveal attention away from the road. Every visual decision was grounded in perception science and validated through iterative prototyping.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+
+  <!-- DATA-DRIVEN DISCOVERY -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-eyebrow">Research</div>
+      <div class="section-title">Data-Driven Discovery</div>
+    </div>
+
+    <div class="data-grid">
+      <!-- Complaint card -->
+      <div class="data-card complaint-card">
+        <div class="cc-badge">#1 Most Complained Feature</div>
+        <div class="cc-rank">#1</div>
+        <div class="cc-rank-label">Most Complained Feature</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:12px;font-style:italic">WASN'T IT THE PERFECT THIRD FEATURE? DRIVER STUDIES 2022–2024</div>
+        <div class="cc-quote">"It's the biggest challenge for the industry."</div>
+        <div class="cc-source">— <span>Design Research Quarterly, Vol 14</span></div>
+      </div>
+
+      <!-- Testimonial card -->
+      <div class="data-card t-card">
+        <div class="t-user">
+          <div class="t-avatar">R</div>
+          <div>
+            <div class="t-stars">★★★★☆</div>
+            <div class="t-name">roamroute75</div>
+            <div class="t-handle">Driver/5</div>
+          </div>
+          <div style="margin-left:auto;font-size:10px;color:var(--text-muted)">🔗</div>
+        </div>
+        <div class="t-body">
+          <div style="font-size:18px;color:var(--green);margin-bottom:6px;line-height:1">"</div>
+          My eyes take a <span class="highlight">second focus</span> in order to read small graphics.
+        </div>
+        <div class="t-meta">Verified review · Automotive UX Forum 2024</div>
+      </div>
+
+      <!-- Distraction banner -->
+      <div class="distract-banner">
+        <h2>Screens are distracting.</h2>
+        <p>It's a significant problem. Screens, information overload, and interaction friction are costing lives.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- THE DESIGN LOGIC -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-eyebrow">Framework</div>
+      <div class="section-title">The Design Logic</div>
+      <div class="section-subtitle">A screening filter dissertation: how a foveal-first approach structures every element of the HUD.</div>
+    </div>
+
+    <div class="design-grid">
+      <!-- Fovea diagram -->
+      <div class="fovea-card">
+        <div class="fovea-screen">
+          <div class="fovea-grid-lines"></div>
+          <div style="position:relative;width:200px;height:200px">
+            <div class="fovea-circle fc4"></div>
+            <div class="fovea-circle fc3"></div>
+            <div class="fovea-circle fc2"></div>
+            <div class="fovea-circle fc1"></div>
+          </div>
+          <div class="fovea-zones">
+            <div class="fz-item"><span>●</span> Foveal · 5°</div>
+            <div class="fz-item" style="margin-left:8px">○ Para-foveal</div>
+            <div class="fz-item" style="margin-left:16px">○ Peripheral</div>
+          </div>
+          <div class="fovea-labels">
+            <div class="fovea-label-item"><div class="fovea-label-dot" style="background:var(--green)"></div><span style="color:var(--text-dim)">Critical</span></div>
+            <div class="fovea-label-item"><div class="fovea-label-dot" style="background:rgba(126,203,69,0.4)"></div><span style="color:var(--text-dim)">Secondary</span></div>
+            <div class="fovea-label-item"><div class="fovea-label-dot" style="background:rgba(126,203,69,0.15)"></div><span style="color:var(--text-dim)">Ambient</span></div>
+          </div>
+        </div>
+        <div class="fovea-body">
+          <div class="field-label">Foveal Map</div>
+          <h4>Optical Zone Framework</h4>
+          <p>All primary HUD data is composed within the 5° foveal cone — the zone of highest visual acuity. Secondary data is placed at para-foveal range. Nothing competes with the road.</p>
+        </div>
+      </div>
+
+      <!-- Side cards -->
+      <div class="design-side">
+        <div class="design-side-row">
+          <!-- Power of 6 -->
+          <div class="power6-card">
+            <div class="p6-top">
+              <div class="p6-icon">⊞</div>
+              <div style="font-size:10px;color:var(--text-dim);line-height:1.4">Max simultaneous<br>HUD elements</div>
+            </div>
+            <div class="p6-num-wrap">
+              <span class="p6-num">6</span>
+            </div>
+            <div class="p6-arrows">
+              <span class="p6-arrow">▲</span>
+              <span class="p6-arrow">▼</span>
+            </div>
+            <div class="p6-body">
+              <h4>The Power of 6</h4>
+              <p>Exceeding 6 concurrent visual items exceeds working memory capacity under driving load — a cognitive science baseline for the entire layout system.</p>
+            </div>
+          </div>
+
+          <!-- Chromatic Safety -->
+          <div class="chroma-card">
+            <div class="chroma-tabs">
+              <div class="chroma-tab active">Free</div>
+              <div class="chroma-tab">Light</div>
+              <div class="chroma-tab">Dark</div>
+            </div>
+            <div class="chroma-grid">
+              <div class="chroma-swatch" style="background:#7ecb45"><span>Go</span></div>
+              <div class="chroma-swatch" style="background:#f0b429"><span>Warn</span></div>
+              <div class="chroma-swatch" style="background:#e05252"><span>Stop</span></div>
+              <div class="chroma-swatch" style="background:#4ea8de"><span>Info</span></div>
+            </div>
+            <div class="chroma-body">
+              <h4>Chromatic Safety</h4>
+              <p>Each hue is mapped to a cognitive priority and lighting condition — not aesthetic preference. The colour system functions identically across day, night, and rain.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Card: Foveal-First Composition -->
+        <div class="interactive-card-wrap">
+          <div class="interactive-card" id="openInteractive">
+            <div class="ic-label">Interactive Exercise</div>
+            <div class="ic-title">Foveal-First Composition</div>
+            <div class="ic-desc">
+              Drag HUD elements into their correct zones. Experience how the 5° foveal cone structures every design decision.
+            </div>
+            <div class="ic-hint">
+              Click to explore
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 6h8M6 2l4 4-4 4"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Zone Architecture</div>
+        <div class="modal-close-btn" id="closeModal">×</div>
+      </div>
+      <div class="modal-body">
+        <iframe id="interactiveFrame" src=""></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- REAL-TIME ADAPTATION -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-eyebrow">Adaptive System</div>
+      <div class="section-title">Real-time Adaptation</div>
+    </div>
+    <div class="adaptation-intro">
+      A system that lives with the driver, responding to every change in environment.
+    </div>
+
+    <div class="adapt-tabs">
+      <button class="adapt-tab active" onclick="setAdapt('highway',this)">Highway</button>
+      <button class="adapt-tab" onclick="setAdapt('urban',this)">Urban</button>
+      <button class="adapt-tab" onclick="setAdapt('night',this)">Night Vision</button>
+    </div>
+
+    <!-- Road scene -->
+    <div class="road-scene-img" id="adaptScene">
+      <div class="scene-trees-l"></div>
+      <div class="scene-trees-r"></div>
+      <div class="scene-sky"></div>
+      <div class="scene-road"></div>
+      <div class="scene-nav" id="adaptNav">↑ Continue on A9 · 12.4 km</div>
+      <div class="scene-hud-bar">
+        <div class="scene-hud-speed" id="adaptSpeed">68</div>
+        <div class="scene-hud-unit">mph</div>
+        <div class="scene-hud-label" id="adaptLabel">HIGHWAY</div>
+      </div>
+    </div>
+
+    <div class="adapt-caption">
+      <h4 id="adaptTitle">Focused on high speed stability.</h4>
+      <ul class="adapt-bullets" id="adaptBullets">
+        <li>Minimum info: speed, distance warning, turn distance between landmarks</li>
+        <li>Speed colours shift according to current speed limit for that road</li>
+        <li>Haptic feedback on the steering wheel acts as a focus-free alerting system</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- SOLVING INTERACTION LOGIC -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-eyebrow">UX Challenges</div>
+      <div class="section-title">Solving the Interaction Logic</div>
+    </div>
+
+    <div class="interaction-grid">
+      <!-- Challenge 01: City -->
+      <div class="inter-card">
+        <div class="inter-img city-scene">
+          <div class="city-skyline">
+            <div class="b" style="height:80px;background:rgba(78,168,222,0.06);width:24px">
+              <div class="bw b-on"></div><div class="bw b-off"></div><div class="bw b-on"></div>
+              <div class="bw b-blue"></div><div class="bw b-off"></div>
+            </div>
+            <div class="b" style="height:55px;background:rgba(78,168,222,0.05);width:22px">
+              <div class="bw b-off"></div><div class="bw b-on"></div><div class="bw b-blue"></div>
+            </div>
+            <div class="b" style="height:110px;background:rgba(78,168,222,0.07);width:28px">
+              <div class="bw b-on"></div><div class="bw b-on"></div><div class="bw b-off"></div>
+              <div class="bw b-blue"></div><div class="bw b-on"></div><div class="bw b-off"></div><div class="bw b-on"></div>
+            </div>
+            <div class="b" style="height:44px;background:rgba(78,168,222,0.04);width:20px">
+              <div class="bw b-on"></div><div class="bw b-off"></div>
+            </div>
+            <div class="b" style="height:76px;background:rgba(78,168,222,0.06);width:26px">
+              <div class="bw b-off"></div><div class="bw b-on"></div><div class="bw b-blue"></div>
+              <div class="bw b-on"></div><div class="bw b-off"></div>
+            </div>
+            <div class="b" style="height:90px;background:rgba(78,168,222,0.05);width:22px">
+              <div class="bw b-on"></div><div class="bw b-blue"></div><div class="bw b-off"></div>
+              <div class="bw b-on"></div><div class="bw b-on"></div>
+            </div>
+          </div>
+          <div class="city-hud-overlay">
+            <div class="c-hud-spd">32</div>
+            <div class="c-hud-nav">▲ Turn in 200ft<br>Maple Street</div>
+          </div>
+        </div>
+        <div class="inter-body">
+          <div class="inter-num">Challenge 01</div>
+          <div class="inter-title">Dense Maps in Urban Densities</div>
+          <div class="inter-desc">Early prototyping showed driver's ignoring the signage, going down an extra stop at the crossing, that's because there was too much light from the colour clutter and eye strain from dense displays.</div>
+        </div>
+      </div>
+
+      <!-- Challenge 02: Fog -->
+      <div class="inter-card">
+        <div class="inter-img fog-scene">
+          <div class="fog-road"></div>
+          <div class="fog-overlay-layer"></div>
+          <div class="fog-hud">47 mph</div>
+        </div>
+        <div class="inter-body">
+          <div class="inter-num">Challenge 02</div>
+          <div class="inter-title">Varying Visibility in Adverse Conditions</div>
+          <div class="inter-desc">Some test drivers had a great difficulty with the displayed for full visibility, dropping an area for flying an area for sight assessment.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- DEPLOYMENT / CODE -->
+  <div class="section">
+    <div class="deploy-grid">
+      <!-- Dashboard scene -->
+      <div class="deploy-scene">
+        <div class="deploy-hud-strip">
+          <div class="d-hud-speed">72</div>
+          <div>
+            <div style="font-size:8px;color:var(--green);margin-bottom:2px">● ADAPTIVE MODE</div>
+            <div class="d-hud-info">Lane assist ON · A9 North</div>
+          </div>
+        </div>
+        <div class="deploy-scene-inner">
+          <div class="deploy-wheel"></div>
+        </div>
+        <div class="deploy-dash-bar">
+          <div class="deploy-vent"></div>
+          <div style="flex:1"></div>
+          <div class="deploy-vent"></div>
+        </div>
+      </div>
+
+      <!-- Code panel -->
+      <div class="code-panel">
+        <div class="code-header">
+          <div class="code-dot" style="background:#e05252"></div>
+          <div class="code-dot" style="background:#f0b429"></div>
+          <div class="code-dot" style="background:#7ecb45"></div>
+          <div class="code-filename">hud-adapter.ts</div>
+        </div>
+        <div class="code-body">
+          <div class="code-line"><span class="code-ln">1</span><span class="code-cm">// Adaptive HUD core controller</span></div>
+          <div class="code-line"><span class="code-ln">2</span><span class="code-kw">import</span> <span class="code-punc">{ </span><span class="code-obj">HUDState</span><span class="code-punc">, </span><span class="code-obj">DriveContext</span><span class="code-punc"> } </span><span class="code-kw">from</span> <span class="code-str">'./types'</span></div>
+          <div class="code-line"><span class="code-ln">3</span></div>
+          <div class="code-line"><span class="code-ln">4</span><span class="code-kw">export function</span> <span class="code-fn">adaptDisplay</span><span class="code-punc">(</span></div>
+          <div class="code-line"><span class="code-ln">5</span>&nbsp;&nbsp;<span class="code-prop">ctx</span><span class="code-punc">: </span><span class="code-obj">DriveContext</span></div>
+          <div class="code-line"><span class="code-ln">6</span><span class="code-punc">): </span><span class="code-obj">HUDState</span><span class="code-punc"> {</span></div>
+          <div class="code-line"><span class="code-ln">7</span>&nbsp;&nbsp;<span class="code-kw">const</span> <span class="code-prop">mode</span> <span class="code-punc">= </span><span class="code-fn">classifyMode</span><span class="code-punc">(</span><span class="code-prop">ctx</span><span class="code-punc">.</span><span class="code-prop">speed</span><span class="code-punc">)</span></div>
+          <div class="code-line"><span class="code-ln">8</span>&nbsp;&nbsp;<span class="code-kw">const</span> <span class="code-prop">brightness</span> <span class="code-punc">= </span><span class="code-fn">calcBrightness</span><span class="code-punc">(</span></div>
+          <div class="code-line"><span class="code-ln">9</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-prop">ctx</span><span class="code-punc">.</span><span class="code-prop">ambientLight</span><span class="code-punc">,</span></div>
+          <div class="code-line"><span class="code-ln">10</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-prop">ctx</span><span class="code-punc">.</span><span class="code-prop">condition</span></div>
+          <div class="code-line"><span class="code-ln">11</span>&nbsp;&nbsp;<span class="code-punc">)</span></div>
+          <div class="code-line"><span class="code-ln">12</span>&nbsp;&nbsp;<span class="code-kw">return</span> <span class="code-punc">{</span></div>
+          <div class="code-line"><span class="code-ln">13</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-prop">elements</span><span class="code-punc">: </span><span class="code-fn">filterByMode</span><span class="code-punc">(</span><span class="code-prop">mode</span><span class="code-punc">),</span></div>
+          <div class="code-line"><span class="code-ln">14</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-prop">palette</span><span class="code-punc">: </span><span class="code-fn">chromaticSafety</span><span class="code-punc">(</span><span class="code-prop">ctx</span><span class="code-punc">),</span></div>
+          <div class="code-line"><span class="code-ln">15</span>&nbsp;&nbsp;&nbsp;&nbsp;brightness<span class="code-punc">,</span></div>
+          <div class="code-line"><span class="code-ln">16</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-prop">layout</span><span class="code-punc">: </span><span class="code-str">'foveal-first'</span></div>
+          <div class="code-line"><span class="code-ln">17</span>&nbsp;&nbsp;<span class="code-punc">}</span></div>
+          <div class="code-line"><span class="code-ln">18</span><span class="code-punc">}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deploy notes -->
+    <div class="deploy-notes">
+      <div class="deploy-note">
+        <div class="dn-label">Environment</div>
+        <div class="dn-text">React is a bring-your-own-tools-framework for a vehicle SDK. Platform support comes from the sensor bus API.</div>
+      </div>
+      <div class="deploy-note">
+        <div class="dn-label">Input</div>
+        <div class="dn-text">It uses AI to generating visual algorithms based on model performance at the foundation.</div>
+      </div>
+      <div class="deploy-note">
+        <div class="dn-label">Deployment</div>
+        <div class="dn-text">First deployment in a whole display customization approach to driving vehicle conditions.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <div class="cta-img">
+      <div class="cta-road"></div>
+      <div class="cta-wheel"></div>
+    </div>
+    <div class="cta-content">
+      <h2>Experience the Simulation.<br><em>Ready to drive?</em></h2>
+      <p>It's time for you to participate in a HUD adaptive travel simulation.</p>
+      <a href="#" class="cta-btn">
+        Launch Now
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7h10M7 2l5 5-5 5"/></svg>
+      </a>
+    </div>
+  </div>
+
+</div><!-- end content-wrap -->
+
+<script>
+const adaptModes = {
+  highway: {
+    speed: '68', label: 'HIGHWAY', nav: '↑ Continue on A9 · 12.4 km',
+    title: 'Focused on high speed stability.',
+    bullets: [
+      'Minimum info: speed, distance warning, turn distance between landmarks',
+      'Speed colours shift according to current speed limit for that road',
+      'Haptic feedback on the steering wheel acts as a focus-free alerting system'
+    ],
+    sceneBg: 'linear-gradient(180deg, #6a8840 0%, #4a6020 30%, #2e3e12 60%, #1c2808 80%, #0f1804 100%)'
+  },
+  urban: {
+    speed: '28', label: 'URBAN', nav: '▲ Turn in 200ft · High Street',
+    title: 'Compressed to navigation essentials.',
+    bullets: [
+      'Turn-by-turn navigation with distance is the only primary element shown',
+      'Speed limit indicator replaces raw speed readout for compliance clarity',
+      'Pedestrian proximity zones expand warning radius in dense environments'
+    ],
+    sceneBg: 'linear-gradient(180deg, #1a2010 0%, #0e1608 30%, #0a1005 60%, #070c04 80%, #040804 100%)'
+  },
+  night: {
+    speed: '55', label: 'NIGHT MODE', nav: '↑ Continue · Low beam active',
+    title: 'Adaptive night mode engaged.',
+    bullets: [
+      'Display brightness auto-reduces to prevent windshield glare and eye strain',
+      'Contrast boost ensures legibility against low ambient light at road level',
+      'Red-free colour spectrum is applied to preserve natural dark-adaptation'
+    ],
+    sceneBg: 'linear-gradient(180deg, #050809 0%, #030507 30%, #020405 60%, #010304 80%, #010203 100%)'
+  }
+};
+
+function setAdapt(mode, btn) {
+  const m = adaptModes[mode];
+  document.getElementById('adaptSpeed').textContent = m.speed;
+  document.getElementById('adaptLabel').textContent = m.label;
+  document.getElementById('adaptNav').textContent = m.nav;
+  document.getElementById('adaptScene').style.background = m.sceneBg;
+  document.getElementById('adaptTitle').textContent = m.title;
+  document.getElementById('adaptBullets').innerHTML = m.bullets.map(b => `<li>${b}</li>`).join('');
+  document.querySelectorAll('.adapt-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── MODAL INTERACTION ──
+const openBtn = document.getElementById('openInteractive');
+const modalOverlay = document.getElementById('modalOverlay');
+const closeBtn = document.getElementById('closeModal');
+const iframe = document.getElementById('interactiveFrame');
+
+// The complete interactive HTML content (from the uploaded document)
+const INTERACTIVE_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zone Architecture — HUD</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;min-height:100vh;background:#0a0a0a;font-family:'Inter',sans-serif;display:flex;flex-direction:column;align-items:center;padding:28px 16px 48px;color:#fff;user-select:none;-webkit-user-select:none}.page-header{width:100%;max-width:960px;margin-bottom:20px}.eyebrow{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#00e5c8;margin-bottom:5px}.page-title{font-size:20px;font-weight:800;letter-spacing:-.02em;color:#e0e0e0}.page-sub{font-size:11px;color:rgba(255,255,255,.3);margin-top:4px;line-height:1.5}.hud-wrap{width:100%;max-width:960px;background:#0b0f0e;border-radius:18px;border:1px solid rgba(0,229,200,.1);position:relative;overflow:hidden}.hud-wrap::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,200,.065) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,200,.065) 1px,transparent 1px);background-size:34px 34px;pointer-events:none;z-index:0}.hud-inner{position:relative;z-index:1;padding:28px 24px 22px}.cols{display:grid;grid-template-columns:56px 1fr 96px;gap:0;min-height:420px}.peri-col{display:flex;align-items:center;justify-content:center;position:relative}.peri-label{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:600;letter-spacing:.14em;color:#00e5c8;opacity:.65;white-space:nowrap;pointer-events:none}.peri-right,.peri-left{display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:0}.peri-right-hl,.peri-left-hl{position:absolute;inset:0;border-radius:8px;border:1.5px dashed transparent;transition:border-color .18s,background .18s;pointer-events:none;z-index:1}.peri-right.over .peri-right-hl,.peri-left.over .peri-left-hl{border-color:rgba(0,229,200,.5);background:rgba(0,229,200,.04)}.peri-right.wrong .peri-right-hl,.peri-left.wrong .peri-left-hl{border-color:rgba(220,60,60,.6);background:rgba(220,60,60,.04)}.peri-items{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;width:100%;padding:8px 4px;min-height:120px}.peri-tooltip{position:absolute;right:calc(100% + 14px);top:40%;background:#1c2120;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:11px 14px;font-size:11px;color:rgba(255,255,255,.75);line-height:1.6;white-space:nowrap;box-shadow:0 6px 28px rgba(0,0,0,.6);z-index:50;opacity:0;pointer-events:none;transform:translateY(-50%) scale(0.94) translateX(6px);transition:opacity .2s ease,transform .2s ease}.peri-tooltip.visible{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1) translateX(0)}.peri-tooltip b{color:#fff;font-size:12px;display:block;margin-bottom:2px}.peri-tooltip::after{content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%) rotate(45deg);width:9px;height:9px;background:#1c2120;border-top:1px solid rgba(255,255,255,.12);border-right:1px solid rgba(255,255,255,.12)}.peri-left-tooltip{position:absolute;left:calc(100% + 14px);top:40%;background:#1c2120;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:11px 14px;font-size:11px;color:rgba(255,255,255,.75);line-height:1.6;white-space:nowrap;box-shadow:0 6px 28px rgba(0,0,0,.6);z-index:50;opacity:0;pointer-events:none;transform:translateY(-50%) scale(0.94) translateX(-6px);transition:opacity .2s ease,transform .2s ease}.peri-left-tooltip.visible{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1) translateX(0)}.peri-left-tooltip b{color:#fff;font-size:12px;display:block;margin-bottom:2px}.peri-left-tooltip::after{content:'';position:absolute;left:-6px;top:50%;transform:translateY(-50%) rotate(45deg);width:9px;height:9px;background:#1c2120;border-bottom:1px solid rgba(255,255,255,.12);border-left:1px solid rgba(255,255,255,.12)}.safe-tooltip{position:absolute;left:50%;bottom:calc(100% + 14px);transform:translateX(-50%) translateY(6px) scale(0.94);background:#1c2120;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:11px 14px;font-size:11px;color:rgba(255,255,255,.75);line-height:1.6;white-space:nowrap;box-shadow:0 6px 28px rgba(0,0,0,.6);z-index:50;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease}.safe-tooltip.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}.safe-tooltip b{color:#fff;font-size:12px;display:block;margin-bottom:2px}.safe-tooltip::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%) rotate(45deg);width:9px;height:9px;background:#1c2120;border-bottom:1px solid rgba(255,255,255,.12);border-right:1px solid rgba(255,255,255,.12)}.peri-right,.peri-left{cursor:pointer}.peri-right.tooltip-open .peri-right-hl,.peri-left.tooltip-open .peri-left-hl{border-color:rgba(0,229,200,.35);background:rgba(0,229,200,.03)}.peri-col.clickable{cursor:pointer}.peri-col.clickable:hover .peri-label{opacity:1}.safe-row{position:relative;cursor:pointer}.safe-row:hover .safe-drop{border-color:rgba(0,229,200,.2)}.center-col{display:flex;flex-direction:column;gap:0}.critical-zone{background:rgba(0,229,200,.03);border:1.5px solid #00e5c8;border-radius:16px;flex:1;display:flex;flex-direction:column;align-items:center;padding:18px 16px 20px}.cz-label{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#00e5c8;opacity:.8;margin-bottom:18px}.foveal-box{border:1.5px solid #00e5c8;border-radius:26px;width:190px;height:190px;display:flex;align-items:center;justify-content:center;background:rgba(0,229,200,.025)}.crosshair{position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center}.ch-ring{position:absolute;border-radius:50%;border:1px solid rgba(0,229,200,.28)}.ch-r1{width:52px;height:52px}.ch-r2{width:22px;height:22px;background:rgba(0,229,200,.07);border-color:rgba(0,229,200,.5)}.ch-dot{position:absolute;width:6px;height:6px;border-radius:50%;background:rgba(0,229,200,.6)}.ch-h,.ch-v{position:absolute;background:rgba(0,229,200,.22)}.ch-h{width:52px;height:1px}.ch-v{height:52px;width:1px}.safe-row{display:flex;flex-direction:column;align-items:center;padding:14px 0 4px}.sz-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px}.sz-line{width:52px;height:1px;background:rgba(0,229,200,.3)}.sz-label{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#00e5c8;opacity:.65}.safe-drop{width:100%;min-height:68px;display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;border:1.5px dashed transparent;border-radius:10px;padding:8px 12px;transition:border-color .18s,background .18s}.safe-drop.over{border-color:rgba(0,229,200,.45);background:rgba(0,229,200,.04)}.safe-drop.wrong{border-color:rgba(220,60,60,.6);background:rgba(220,60,60,.04)}.tray-wrap{width:100%;max-width:960px;margin-top:14px}.tray-hint{font-size:10px;color:rgba(255,255,255,.28);text-align:center;margin-bottom:10px;letter-spacing:.04em}.tray{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;padding:18px 20px;background:rgba(255,255,255,.018);border-radius:14px;border:1px solid rgba(255,255,255,.055);min-height:80px;transition:border-color .3s}.tray.all-done{border-color:rgba(0,229,200,.15)}.hud-item{cursor:grab;touch-action:none;flex-shrink:0}.hud-item:hover{filter:drop-shadow(0 4px 14px rgba(0,229,200,.35))}.hud-item:active{cursor:grabbing}.hud-item.is-dragging{opacity:.2;pointer-events:none}.hud-item.is-placed{cursor:default;animation:snapIn .3s cubic-bezier(.2,.8,.3,1) both}.hud-item.is-placed:hover{filter:none}.drag-ghost{position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%) scale(1.1);filter:drop-shadow(0 6px 20px rgba(0,229,200,.5));transition:none}.spd{display:flex;align-items:baseline;gap:5px}.spd-n{font-family:'Space Mono',monospace;font-size:44px;font-weight:700;color:#fff;line-height:1}.spd-u{font-size:12px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.1em}.spd-lim{width:44px;height:44px;border-radius:50%;border:3.5px solid #e03333;background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#111}.drive-d{font-family:'Space Mono',monospace;font-size:42px;font-weight:700;color:#00ccee;line-height:1}.tyre-icon{font-size:34px;line-height:1}.stop-oct{width:46px;height:46px;background:#cc2222;clip-path:polygon(29% 0%,71% 0%,100% 29%,100% 71%,71% 100%,29% 100%,0% 71%,0% 29%);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;color:#fff;letter-spacing:.06em}.fuel-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}.fuel-row{display:flex;align-items:center;gap:5px}.fuel-lbl{font-size:11px;font-weight:600;color:rgba(255,255,255,.5)}.fuel-bg{width:88px;height:9px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden}.fuel-fill{width:65%;height:100%;border-radius:5px;background:linear-gradient(90deg,#00b8d4,#00e5c8)}.fuel-ico{font-size:15px}.nav-wrap{display:flex;align-items:center;gap:8px}.nav-arrow{font-size:28px;color:#00e5c8;font-weight:900;line-height:1}.nav-text{font-family:'Space Mono',monospace;font-size:13px;color:rgba(255,255,255,.7);font-weight:600}.lane-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}.lane-road{width:48px;height:34px;background:rgba(255,255,255,.04);border-radius:4px;border:1px solid rgba(255,255,255,.1);position:relative;display:flex;align-items:center;justify-content:center}.lane-line{position:absolute;top:4px;bottom:4px;width:2px;border-radius:1px;background:rgba(255,255,255,.3)}.lane-left{left:10px}.lane-right{right:10px}.lane-car{width:14px;height:20px;border-radius:3px;background:#00e5c8;opacity:.8}.lane-label{font-size:8px;font-weight:700;letter-spacing:.12em;color:rgba(0,229,200,.7)}@keyframes snapIn{0%{transform:scale(1.35);opacity:.4}65%{transform:scale(.94)}100%{transform:scale(1);opacity:1}}@keyframes glowOn{0%,100%{filter:drop-shadow(0 0 0px transparent)}50%{filter:drop-shadow(0 0 14px #00e5c8)}}.success{display:none;align-items:center;gap:10px;width:100%;max-width:960px;margin-top:12px;background:rgba(0,229,200,.07);border:1px solid rgba(0,229,200,.25);border-radius:10px;padding:11px 18px;font-size:12px;color:#00e5c8;font-weight:600}.success.show{display:flex}.s-dot{width:7px;height:7px;border-radius:50%;background:#00e5c8;animation:sdot 1.6s infinite}@keyframes sdot{0%,100%{opacity:1}50%{opacity:.3}}.reset-btn{display:block;margin:12px auto 0;padding:7px 18px;border-radius:7px;border:1px solid rgba(255,255,255,.09);background:transparent;color:rgba(255,255,255,.35);font-size:11px;cursor:pointer;font-family:inherit;transition:all .2s}.reset-btn:hover{border-color:rgba(0,229,200,.4);color:#00e5c8}
+</style>
+</head>
+<body>
+<div class="page-header">
+<div class="eyebrow">Design Logic</div>
+<div class="page-title">Zone Architecture</div>
+<div class="page-sub">Drag each of the 8 elements into its correct zone — Safe Zone (bottom) or Peripheral Zone (left/right).</div>
+</div>
+<div class="hud-wrap">
+<div class="hud-inner">
+<div class="cols">
+<div class="peri-col peri-left clickable" id="periLeft">
+<div class="peri-left-hl"></div>
+<div class="peri-label">Peripheral Zone</div>
+<div class="peri-left-tooltip" id="periLeftTooltip"><b>Low Priority</b>Secondary info,<br>ambient awareness</div>
+<div class="peri-items" id="periLeftItems"></div>
+</div>
+<div class="center-col">
+<div class="critical-zone">
+<div class="cz-label">CRITICAL ZONE</div>
+<div class="foveal-box">
+<div class="crosshair">
+<div class="ch-ring ch-r1"></div>
+<div class="ch-ring ch-r2"></div>
+<div class="ch-dot"></div>
+<div class="ch-h"></div>
+<div class="ch-v"></div>
+</div>
+</div>
+</div>
+<div class="safe-row" id="safeRow">
+<div class="safe-tooltip" id="safeTooltip"><b>Primary Display</b>Speed, distance, fuel</div>
+<div class="sz-bar">
+<div class="sz-line"></div>
+<div class="sz-label">SAFE ZONE</div>
+<div class="sz-line"></div>
+</div>
+<div class="safe-drop" id="safeDrop"></div>
+</div>
+</div>
+<div class="peri-col peri-right" id="periRight">
+<div class="peri-right-hl"></div>
+<div class="peri-label">Peripheral Zone</div>
+<div class="peri-tooltip" id="periTooltip"><b>+5 ~ 10</b><br>ADAS Notifications,<br>Assistive Alerts</div>
+<div class="peri-items" id="periItems"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="success" id="successBanner">
+<div class="s-dot"></div>
+Zone Architecture complete — all elements correctly placed.
+</div>
+<div class="tray-wrap">
+<div class="tray-hint">↑ Drag items into their correct zone on the display above</div>
+<div class="tray" id="tray">
+<div class="hud-item" id="item-speed" data-correct="safe"><div class="spd"><span class="spd-n">68</span><span class="spd-u">MPH</span></div></div>
+<div class="hud-item" id="item-limit" data-correct="safe"><div class="spd-lim">50</div></div>
+<div class="hud-item" id="item-drive" data-correct="peripheral-right"><div class="drive-d">D</div></div>
+<div class="hud-item" id="item-tyre" data-correct="peripheral-right"><div class="tyre-icon">⚠️</div></div>
+<div class="hud-item" id="item-stop" data-correct="peripheral-right"><div class="stop-oct">STOP</div></div>
+<div class="hud-item" id="item-fuel" data-correct="safe"><div class="fuel-wrap"><div class="fuel-row"><span class="fuel-lbl">E</span><div class="fuel-bg"><div class="fuel-fill"></div></div><span class="fuel-lbl">F</span></div><div class="fuel-ico">⛽</div></div></div>
+<div class="hud-item" id="item-nav" data-correct="peripheral-left"><div class="nav-wrap"><div class="nav-arrow">↑</div><div class="nav-text">0.4 mi</div></div></div>
+<div class="hud-item" id="item-lane" data-correct="safe"><div class="lane-wrap"><div class="lane-road"><div class="lane-line lane-left"></div><div class="lane-car"></div><div class="lane-line lane-right"></div></div><div class="lane-label">LANE</div></div></div>
+</div>
+<button class="reset-btn" id="resetBtn">↺ Reset all</button>
+</div>
+<script>
+const TRAY=document.getElementById('tray'),SAFE=document.getElementById('safeDrop'),PERI_LEFT_COL=document.getElementById('periLeft'),PERI_LEFT=document.getElementById('periLeftItems'),PERI_COL=document.getElementById('periRight'),PERI=document.getElementById('periItems'),TOOLTIP=document.getElementById('periTooltip'),SUCCESS=document.getElementById('successBanner');let activeEl=null,ghost=null,pointerId=null;const ORIGINAL_PARENTS={};document.querySelectorAll('.hud-item').forEach(e=>{ORIGINAL_PARENTS[e.id]=e.parentNode});function spawnGhost(e,t,o){killGhost(),ghost=e.cloneNode(!0),ghost.className='drag-ghost',ghost.style.left=t+'px',ghost.style.top=o+'px',document.body.appendChild(ghost)}function moveGhost(e,t){ghost&&(ghost.style.left=e+'px',ghost.style.top=t+'px')}function killGhost(){ghost&&(ghost.remove(),ghost=null)}function hitZone(e,t){const o=SAFE.closest('.safe-row').getBoundingClientRect(),n=PERI_LEFT_COL.getBoundingClientRect(),s=PERI_COL.getBoundingClientRect(),i=24;return e>=o.left-i&&e<=o.right+i&&t>=o.top-i&&t<=o.bottom+i?'safe':e>=n.left-i&&e<=n.right+i&&t>=n.top-i&&t<=n.bottom+i?'peripheral-left':e>=s.left-i&&e<=s.right+i&&t>=s.top-i&&t<=s.bottom+i?'peripheral-right':null}function highlight(e){SAFE.classList.toggle('over','safe'===e),PERI_LEFT_COL.classList.toggle('over','peripheral-left'===e),PERI_COL.classList.toggle('over','peripheral-right'===e)}function clearHighlights(){SAFE.classList.remove('over','wrong'),PERI_LEFT_COL.classList.remove('over','wrong'),PERI_COL.classList.remove('over','wrong')}function flashWrong(e){let t;'safe'===e?t=SAFE:'peripheral-left'===e?t=PERI_LEFT_COL:'peripheral-right'===e&&(t=PERI_COL),t&&(t.classList.add('wrong'),setTimeout(()=>t.classList.remove('wrong'),500))}function placeItem(e,t){e.classList.remove('is-dragging'),e.classList.add('is-placed'),e.style.animation='none',void e.offsetWidth,e.style.animation='',e.style.animation='snapIn .3s cubic-bezier(.2,.8,.3,1) both, glowOn .5s ease .28s',setTimeout(()=>{e.style.animation='none'},900),'safe'===t?SAFE.appendChild(e):'peripheral-left'===t?PERI_LEFT.appendChild(e):'peripheral-right'===t&&PERI.appendChild(e),checkSuccess()}function checkSuccess(){const e=[...document.querySelectorAll('.hud-item')].every(e=>e.classList.contains('is-placed'));SUCCESS.classList.toggle('show',e),e&&TRAY.classList.add('all-done')}document.querySelectorAll('.hud-item').forEach(e=>{e.addEventListener('pointerdown',t=>{e.classList.contains('is-placed')||(t.preventDefault(),activeEl=e,pointerId=t.pointerId,e.setPointerCapture(t.pointerId),e.classList.add('is-dragging'),spawnGhost(e,t.clientX,t.clientY))}),e.addEventListener('pointermove',t=>{activeEl===e&&(t.preventDefault(),moveGhost(t.clientX,t.clientY),highlight(hitZone(t.clientX,t.clientY)))}),e.addEventListener('pointerup',t=>{if(activeEl===e){t.preventDefault(),killGhost(),clearHighlights();const o=hitZone(t.clientX,t.clientY),n=e.dataset.correct;o&&o===n?placeItem(e,o):o&&o!==n?(e.classList.remove('is-dragging'),e.classList.add('shake-anim'),setTimeout(()=>e.classList.remove('shake-anim'),400),flashWrong(o)):e.classList.remove('is-dragging'),activeEl=null,pointerId=null}}),e.addEventListener('pointercancel',t=>{activeEl===e&&(killGhost(),clearHighlights(),e.classList.remove('is-dragging'),activeEl=null,pointerId=null)})}),document.getElementById('resetBtn').addEventListener('click',()=>{document.querySelectorAll('.hud-item').forEach(e=>{e.classList.remove('is-placed','is-dragging','shake-anim'),e.style.animation='none',ORIGINAL_PARENTS[e.id].appendChild(e)}),closeAllTooltips(),SUCCESS.classList.remove('show'),TRAY.classList.remove('all-done')});const PERI_LEFT_TIP=document.getElementById('periLeftTooltip'),SAFE_ROW=document.getElementById('safeRow'),SAFE_TIP=document.getElementById('safeTooltip');function toggleTooltip(e,t){const o=e.classList.contains('visible');closeAllTooltips(),o||(e.classList.add('visible'),t&&t.classList.add('tooltip-open'))}function closeAllTooltips(){TOOLTIP.classList.remove('visible'),PERI_LEFT_TIP.classList.remove('visible'),SAFE_TIP.classList.remove('visible'),PERI_COL.classList.remove('tooltip-open'),PERI_LEFT_COL.classList.remove('tooltip-open')}PERI_COL.addEventListener('click',e=>{activeEl||(toggleTooltip(TOOLTIP,PERI_COL),e.stopPropagation())}),PERI_LEFT_COL.addEventListener('click',e=>{activeEl||(toggleTooltip(PERI_LEFT_TIP,PERI_LEFT_COL),e.stopPropagation())}),SAFE_ROW.addEventListener('click',e=>{activeEl||e.target.closest('.hud-item')||(toggleTooltip(SAFE_TIP),e.stopPropagation())}),document.addEventListener('click',()=>{closeAllTooltips()});const shakeStyle=document.createElement('style');shakeStyle.textContent='.shake-anim{animation:shakeKf .38s ease both!important;}@keyframes shakeKf{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}',document.head.appendChild(shakeStyle);
+<\/script>
+</body>
+</html>`;
+
+// Open modal on card click
+if (openBtn) {
+  openBtn.addEventListener('click', () => {
+    modalOverlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    // Write interactive HTML to iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write(INTERACTIVE_HTML);
+    iframeDoc.close();
+  });
+}
+
+// Close modal
+function closeModal() {
+  modalOverlay.classList.remove('visible');
+  document.body.style.overflow = '';
+  iframe.src = '';
+}
+
+if (closeBtn) {
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeModal();
+  });
+}
+
+// Close on overlay click (but not modal content)
+if (modalOverlay) {
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) {
+      closeModal();
+    }
+  });
+}
+
+// ESC key to close
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modalOverlay && modalOverlay.classList.contains('visible')) {
+    closeModal();
+  }
+});
+
+</script>
+</body>
+</html>
