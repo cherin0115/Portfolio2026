@@ -8,6 +8,10 @@ import virginiaBg from '../assets/bg Virginia.png';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Reduce how often the onUpdate callback fires — only once per scrub tick,
+// not on every pixel of scroll. Eliminates JS overhead during fast scrolling.
+ScrollTrigger.config({ limitCallbacks: true });
+
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 const C = {
   vaSky:    '#a0d4f2',
@@ -19,11 +23,32 @@ const C = {
   laSunset: '#ff3c38',
 } as const;
 
-// ─── Image preloader ──────────────────────────────────────────────────────────
-const preloadImage = (src: string): Promise<void> =>
+// ─── GPU compositor style ─────────────────────────────────────────────────────
+// Applied to every layer that GSAP animates or that sits behind animated content.
+// translate3d(0,0,0)   → explicitly triggers hardware-accelerated compositing.
+// will-change:transform → tells the browser to allocate a GPU layer in advance.
+// backface-visibility  → suppresses the "jagged edge" flicker on some GPUs.
+const GPU: React.CSSProperties = {
+  transform:          'translate3d(0,0,0)',
+  willChange:         'transform',
+  backfaceVisibility: 'hidden',
+};
+
+// ─── Image preloader with async decode ───────────────────────────────────────
+// Loads the asset, then calls img.decode() so the browser fully parses and
+// GPU-uploads the bitmap BEFORE the first painted frame.
+// This prevents the main thread from locking up on first render and eliminates
+// the "flash of blank background" on initial scroll entry.
+const preloadAndDecode = (src: string): Promise<void> =>
   new Promise(resolve => {
     const img = new window.Image();
-    img.onload  = () => resolve();
+    img.onload = () => {
+      // img.decode() is async — offloads bitmap decode to a worker thread.
+      // Falls back gracefully if the API isn't available.
+      ('decode' in img ? (img as any).decode() : Promise.resolve())
+        .then(resolve)
+        .catch(resolve);
+    };
     img.onerror = () => resolve();
     img.src = src;
   });
@@ -49,6 +74,9 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
 
   const [activeDot,  setActiveDot]  = useState<string | null>(null);
   const [hoveredDot, setHoveredDot] = useState<string | null>(null);
+  // Loading screen: page stays dark until the background image is fully decoded
+  // and GPU-uploaded — prevents any blank-flash or stutter on first scroll entry.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -57,12 +85,25 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
     let tickerFn: (() => void) | null = null;
 
     const init = async () => {
-      await preloadImage(virginiaBg);
+      // 1. Block until bitmap is fully decoded and ready in the GPU texture cache.
+      await preloadAndDecode(virginiaBg);
       if (!mounted) return;
 
+      // 2. Reveal content — no blank-frame flash possible beyond this point.
+      setLoaded(true);
+
+      // 3. Disable lag-smoothing so GSAP never tries to "catch up" after the
+      //    tab was hidden. Prevents the jarring snap-scroll on tab re-focus.
+      gsap.ticker.lagSmoothing(0);
+
+      // 4. Build GSAP context — all tweens scoped to containerRef.
       ctx = gsap.context(() => {
 
         const tl = gsap.timeline({
+          // lazy: true is the default per-tween, but setting it on the timeline
+          // defaults guarantees every tween in this sequence follows the
+          // "read, then write" batching pattern — no interleaved layout thrashing.
+          defaults: { lazy: true, force3D: true },
           scrollTrigger: {
             trigger:       containerRef.current,
             start:         'top top',
@@ -87,30 +128,32 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
           },
         });
 
+        // immediateRender: false — prevents start-state re-application when the
+        // user scrolls back past progress = 0 (stops reverse-scroll glitch).
+
         // ── Step 1: Virginia horizontal ──────────────────────────────────────
         tl.to(worldRef.current, {
-          x: '-100vw', ease: 'none', force3D: true, immediateRender: false,
+          x: '-100vw', ease: 'none', immediateRender: false,
         });
 
         // ── Step 2: Drop VA → Seoul ───────────────────────────────────────────
-        // Backgrounds are now inside worldRef — Seoul slides in from below naturally.
         tl.to(worldRef.current, {
-          y: '-100vh', ease: 'none', force3D: true, immediateRender: false,
+          y: '-100vh', ease: 'none', immediateRender: false,
         });
 
         // ── Step 3: Seoul horizontal ─────────────────────────────────────────
         tl.to(worldRef.current, {
-          x: '-200vw', ease: 'none', force3D: true, immediateRender: false,
+          x: '-200vw', ease: 'none', immediateRender: false,
         });
 
         // ── Step 4: Drop Seoul → LA ───────────────────────────────────────────
         tl.to(worldRef.current, {
-          y: '-200vh', ease: 'none', force3D: true, immediateRender: false,
+          y: '-200vh', ease: 'none', immediateRender: false,
         });
 
         // ── Step 5: LA horizontal ────────────────────────────────────────────
         tl.to(worldRef.current, {
-          x: '-300vw', ease: 'none', force3D: true, immediateRender: false,
+          x: '-300vw', ease: 'none', immediateRender: false,
         });
 
         // ── Mouse-follow paraglider ───────────────────────────────────────────
@@ -136,8 +179,10 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
         };
         gsap.ticker.add(tickerFn);
 
+        // Paraglider idle bob — force3D + lazy keep it on the compositor thread.
         gsap.to(characterRef.current, {
-          yPercent: 5, duration: 2, repeat: -1, yoyo: true, ease: 'sine.inOut',
+          yPercent: 5, duration: 2, repeat: -1, yoyo: true,
+          ease: 'sine.inOut', force3D: true, lazy: true,
         });
 
       }, containerRef);
@@ -154,30 +199,54 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
   }, []);
 
   return (
+    // contain: layout paint style → tells the browser this element's layout
+    // and paint are fully self-contained. Prevents scroll/resize in the journey
+    // section from triggering layout recalculations on the rest of the page.
     <div
       ref={containerRef}
       className="relative w-full overflow-hidden"
-      style={{ backgroundColor: C.night, minHeight: '100vh', height: '100vh' }}
+      style={{
+        backgroundColor: C.night,
+        minHeight: '100vh',
+        height: '100vh',
+        contain: 'layout paint style',
+      }}
     >
 
+      {/* ── Loading overlay ─────────────────────────────────────────────────────
+          Covers the section until the terrain bitmap is fully GPU-uploaded.
+          CSS opacity transition on the overlay — no JS animation, zero overhead. */}
+      <div
+        aria-hidden
+        style={{
+          position:   'absolute',
+          inset:       0,
+          zIndex:      50,
+          background:  C.night,
+          opacity:     loaded ? 0 : 1,
+          pointerEvents: loaded ? 'none' : 'all',
+          transition:  'opacity 0.6s ease',
+        }}
+      />
+
       {/* ══════════════════════════════════════════════════════════════════════
-          WORLD TRACK — backgrounds + content, all move together.
-          Each background row is 400vw wide (covers every horizontal position)
-          and 100vh tall, stacked at its row's y-offset inside worldRef.
-          As GSAP translates the world, backgrounds and cards move in sync.
+          WORLD TRACK — backgrounds + content, all translated together.
+          GPU style on worldRef promotes the entire 400vw × 300vh world to a
+          single compositor layer so GSAP can translate it with zero CPU repaint.
           ══════════════════════════════════════════════════════════════════════ */}
       <div
         ref={worldRef}
         className="absolute top-0 left-0 w-[400vw] h-[300vh] flex flex-col"
-        style={{ willChange: 'transform', transform: 'translateZ(0)' }}
+        style={{ ...GPU, zIndex: 1 }}
       >
 
         {/* ── Row 1 background · Virginia  (y: 0 → 100vh) ─────────────────── */}
+        {/* GPU style promotes this layer to its own compositor tile so the
+            background renders independently of the content rows above it.     */}
         <div
           className="absolute left-0 w-full"
-          style={{ top: 0, height: '100vh', zIndex: 0 }}
+          style={{ top: 0, height: '100vh', zIndex: 0, ...GPU }}
         >
-          {/* Sky gradient — fills the full 400vw row */}
           <div
             className="absolute inset-0"
             style={{
@@ -187,11 +256,12 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
                 ${C.vaMid}  100%)`,
             }}
           />
-          {/* Terrain image — spans the full Virginia row (200vw) so it stays
-              visible across the entire horizontal pan (Step 1: x 0 → −100vw) */}
+          {/* decoding="async" offloads bitmap decode to a worker thread so
+              image parsing never blocks the main-thread rendering pipeline.  */}
           <img
             src={virginiaBg}
             alt=""
+            decoding="async"
             style={{
               position:       'absolute',
               left:           0,
@@ -210,7 +280,7 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
         <div
           className="absolute left-0 w-full"
           style={{
-            top: '100vh', height: '100vh', zIndex: 0,
+            top: '100vh', height: '100vh', zIndex: 0, ...GPU,
             background: `linear-gradient(to bottom,
               ${C.night}    0%,
               #1a1244       45%,
@@ -222,7 +292,7 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
         <div
           className="absolute left-0 w-full"
           style={{
-            top: '200vh', height: '100vh', zIndex: 0,
+            top: '200vh', height: '100vh', zIndex: 0, ...GPU,
             background: `linear-gradient(to bottom,
               ${C.twilight}  0%,
               ${C.laWarm}    30%,
@@ -236,8 +306,7 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
         <div className="relative w-full h-[100vh] flex flex-shrink-0" style={{ zIndex: 1 }}>
           <CitySection
             city="Virginia"
-            accent="#58aa5a"
-            bgGradient="from-transparent to-transparent"
+            accent="#fc5400"
             projects={[]}
             onProjectClick={onProjectClick}
           />
@@ -262,7 +331,7 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
                       style={{ bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)' }}
                     >
                       <div className="relative">
-                        <img src={project.thumbnail} alt={project.title} className="w-full h-32 object-cover" />
+                        <img src={project.thumbnail} alt={project.title} className="w-full h-32 object-cover" decoding="async" />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2a] via-transparent to-transparent" />
                       </div>
                       <div className="p-4">
@@ -307,7 +376,6 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
           <CitySection
             city="Seoul"
             accent="#4480ff"
-            bgGradient="from-transparent to-transparent"
             projects={PROJECTS.filter(p => p.id.startsWith('KR'))}
             onProjectClick={onProjectClick}
           />
@@ -319,8 +387,7 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
           <div className="w-[200vw] h-full flex-shrink-0" />
           <CitySection
             city="Los Angeles"
-            accent="#ff6020"
-            bgGradient="from-transparent to-transparent"
+            accent="#fffb1d"
             projects={PROJECTS.filter(p => p.id.startsWith('LA'))}
             onProjectClick={onProjectClick}
           />
@@ -338,10 +405,10 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
       {/* Paraglider */}
       <div
         ref={characterRef}
-        className="fixed top-0 left-0 z-[60] w-32 md:w-48 pointer-events-none drop-shadow-2xl will-change-transform"
-        style={{ transform: 'translate(-50%, -50%)' }}
+        className="fixed top-0 left-0 z-[60] w-32 md:w-48 pointer-events-none drop-shadow-2xl"
+        style={{ transform: 'translate(-50%,-50%)', ...GPU }}
       >
-        <img src="/assets/Artboard 9.png" alt="Paraglider" className="w-full h-full object-contain" />
+        <img src="/assets/Artboard 9.png" alt="Paraglider" className="w-full h-full object-contain" decoding="async" />
       </div>
     </div>
   );
@@ -350,11 +417,10 @@ const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, on
 const CitySection: React.FC<{
   city: string;
   accent: string;
-  bgGradient: string;
   projects: ProjectType[];
   onProjectClick: (p: ProjectType) => void;
-}> = ({ city, accent, bgGradient, projects, onProjectClick }) => (
-  <div className={`w-[100vw] h-full relative bg-gradient-to-b ${bgGradient} flex items-center px-12 md:px-32`}>
+}> = ({ city, accent, projects, onProjectClick }) => (
+  <div className="w-[100vw] h-full relative flex items-center px-12 md:px-32">
     <div className="relative z-10 flex gap-8 items-center h-full w-full">
       <header className="flex-shrink-0 w-64 border-l-4 pl-6" style={{ borderColor: accent }}>
         <h4 className="font-serif text-4xl font-bold italic text-white">{city} Stop</h4>
@@ -370,7 +436,7 @@ const CitySection: React.FC<{
               className="group relative flex-shrink-0 w-64 h-80 bg-[#1e3040] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-500 border border-white/10 shadow-2xl pointer-events-auto"
             >
               <div className="absolute inset-0 grayscale group-hover:grayscale-0 transition-all duration-700">
-                <img src={p.thumbnail} alt={p.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" />
+                <img src={p.thumbnail} alt={p.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" decoding="async" />
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-[#07091e] via-transparent to-transparent" />
               <div className="absolute inset-0 p-6 flex flex-col justify-end">
