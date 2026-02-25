@@ -1,459 +1,226 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { PROJECTS, CITY_HUB } from '../constants';
 import { JourneyStop, Project as ProjectType } from '../types';
-import virginiaBg from '../assets/bg Virginia.png';
+import virginiaBg from '../assets/bg_Virginia.webp';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Reduce how often the onUpdate callback fires — only once per scrub tick,
-// not on every pixel of scroll. Eliminates JS overhead during fast scrolling.
-ScrollTrigger.config({ limitCallbacks: true });
-
-// ─── Colour tokens ────────────────────────────────────────────────────────────
 const C = {
-  vaSky:    '#a0d4f2',
-  vaMid:    '#7bb8d8',
+  vaSky: '#a0d4f2',
+  vaMid: '#7bb8d8',
   twilight: '#241760',
-  night:    '#07091e',
-  laWarm:   '#8a3040',
-  laSky:    '#ff6020',
+  night: '#07091e',
+  laWarm: '#8a3040',
+  laSky: '#ff6020',
   laSunset: '#ff3c38',
 } as const;
 
-// ─── GPU compositor style ─────────────────────────────────────────────────────
-// Applied to every layer that GSAP animates or that sits behind animated content.
-// translate3d(0,0,0)   → explicitly triggers hardware-accelerated compositing.
-// will-change:transform → tells the browser to allocate a GPU layer in advance.
-// backface-visibility  → suppresses the "jagged edge" flicker on some GPUs.
 const GPU: React.CSSProperties = {
-  transform:          'translate3d(0,0,0)',
-  willChange:         'transform',
+  transform: 'translate3d(0,0,0)',
+  willChange: 'transform',
   backfaceVisibility: 'hidden',
 };
 
-// ─── Image preloader with async decode ───────────────────────────────────────
-// Loads the asset, then calls img.decode() so the browser fully parses and
-// GPU-uploads the bitmap BEFORE the first painted frame.
-// This prevents the main thread from locking up on first render and eliminates
-// the "flash of blank background" on initial scroll entry.
-const preloadAndDecode = (src: string): Promise<void> =>
-  new Promise(resolve => {
-    const img = new window.Image();
-    img.onload = () => {
-      // img.decode() is async — offloads bitmap decode to a worker thread.
-      // Falls back gracefully if the API isn't available.
-      ('decode' in img ? (img as any).decode() : Promise.resolve())
-        .then(resolve)
-        .catch(resolve);
-    };
-    img.onerror = () => resolve();
-    img.src = src;
-  });
-
-interface ParaglidingJourneyProps {
-  onUpdateHud: (data: any) => void;
-  onProjectClick: (project: ProjectType) => void;
-}
-
 const VA_PROJECTS = PROJECTS.filter(p => p.id.startsWith('VA'));
-
 const VA_DOT_POSITIONS = [
-  { id: 'VA-01', x: 25,  y: 10  },
-  { id: 'VA-02', x: 55,  y: -4  },
-  { id: 'VA-03', x: 79,  y: 40  },
-  { id: 'VA-04', x: 110, y: -10 },
+  { id: 'VA-01', x: 25,  y: 35 },
+  { id: 'VA-02', x: 55, y: 20 },
+  { id: 'VA-03', x: 80, y: 55 },
+  { id: 'VA-04', x: 120, y: 30 },
 ];
 
-const ParaglidingJourney: React.FC<ParaglidingJourneyProps> = ({ onUpdateHud, onProjectClick }) => {
+const ParaglidingJourney: React.FC<{
+  onUpdateHud: (data: any) => void;
+  onProjectClick: (project: ProjectType) => void;
+}> = ({ onUpdateHud, onProjectClick }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const worldRef     = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
   const characterRef = useRef<HTMLDivElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
 
-  const [activeDot,  setActiveDot]  = useState<string | null>(null);
-  const [hoveredDot, setHoveredDot] = useState<string | null>(null);
-  // Loading screen: page stays dark until the background image is fully decoded
-  // and GPU-uploaded — prevents any blank-flash or stutter on first scroll entry.
+  const cityRef = useRef<string>(JourneyStop.VIRGINIA);
+  const [currentCity, setCurrentCity] = useState<string>(JourneyStop.VIRGINIA);
+  const [activeDot, setActiveDot] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    let ctx: gsap.Context | null = null;
-    let handleMouseMove: ((e: MouseEvent) => void) | null = null;
-    let tickerFn: (() => void) | null = null;
+    let ctx = gsap.context(() => {
+      const img = new Image();
+      img.src = virginiaBg;
+      img.onload = () => setLoaded(true);
 
-    const init = async () => {
-      // 1. Block until bitmap is fully decoded and ready in the GPU texture cache.
-      await preloadAndDecode(virginiaBg);
-      if (!mounted) return;
+      const mainTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: 'top top',
+          end: '+=8000',
+          scrub: 1,
+          pin: true,
+          anticipatePin: 1,
+          onUpdate: (self) => {
+            const p = self.progress;
+            let stop = JourneyStop.VIRGINIA;
+            if (p > 0.66) stop = JourneyStop.LA;
+            else if (p > 0.33) stop = JourneyStop.SEOUL;
+            
+            if (stop !== cityRef.current) {
+              cityRef.current = stop;
+              setCurrentCity(stop);
+            }
 
-      // 2. Reveal content — no blank-frame flash possible beyond this point.
-      setLoaded(true);
+            const cityData = CITY_HUB[stop];
+            onUpdateHud({
+              city: cityData.name,
+              coords: cityData.coords,
+              altitude: cityData.altitude + Math.sin(p * 50) * 20,
+              progress: Math.round(p * 100),
+            });
 
-      // 3. Disable lag-smoothing so GSAP never tries to "catch up" after the
-      //    tab was hidden. Prevents the jarring snap-scroll on tab re-focus.
-      gsap.ticker.lagSmoothing(0);
-
-      // 4. Build GSAP context — all tweens scoped to containerRef.
-      ctx = gsap.context(() => {
-
-        const tl = gsap.timeline({
-          // lazy: true is the default per-tween, but setting it on the timeline
-          // defaults guarantees every tween in this sequence follows the
-          // "read, then write" batching pattern — no interleaved layout thrashing.
-          defaults: { lazy: true, force3D: true },
-          scrollTrigger: {
-            trigger:       containerRef.current,
-            start:         'top top',
-            end:           '+=8000',
-            scrub:         0.5,
-            pin:           true,
-            anticipatePin: 1,
-            onUpdate: (self) => {
-              const p = self.progress;
-              let currentStop = JourneyStop.VIRGINIA;
-              if (p > 0.66)      currentStop = JourneyStop.LA;
-              else if (p > 0.33) currentStop = JourneyStop.SEOUL;
-
-              const cityData = CITY_HUB[currentStop];
-              onUpdateHud({
-                city:     cityData.name,
-                coords:   cityData.coords,
-                altitude: cityData.altitude + Math.sin(p * 50) * 20,
-                progress: Math.round(p * 100),
-              });
-            },
+            if (bgRef.current) {
+              if (stop === JourneyStop.VIRGINIA) {
+                // 배경을 가로로 이동시키면서 화면(vh)에 고정
+                gsap.set(bgRef.current, { xPercent: -p * 15, opacity: 1 });
+              } else {
+                gsap.set(bgRef.current, { opacity: 0 });
+              }
+            }
           },
+        },
+      });
+
+      mainTl.to(worldRef.current, { x: '-210vw', ease: 'none' }, 0); 
+      mainTl.to(worldRef.current, { y: '-100vh', x: '0vw', ease: 'none' }, 0.33);
+      mainTl.to(worldRef.current, { y: '-200vh', ease: 'none' }, 0.66);
+
+      const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      const pos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      const handleMouseMove = (e: MouseEvent) => {
+        mouse.x = e.clientX; mouse.y = e.clientY;
+      };
+      window.addEventListener('mousemove', handleMouseMove);
+
+      const tickerFn = () => {
+        const dt = 1.0 - Math.pow(1.0 - 0.08, gsap.ticker.deltaRatio());
+        pos.x += (mouse.x - pos.x) * dt;
+        pos.y += (mouse.y - pos.y) * dt;
+        gsap.set(characterRef.current, {
+          rotation: (mouse.x - pos.x) * 0.15,
+          x: pos.x, y: pos.y,
+          force3D: true,
         });
+      };
+      gsap.ticker.add(tickerFn);
 
-        // immediateRender: false — prevents start-state re-application when the
-        // user scrolls back past progress = 0 (stops reverse-scroll glitch).
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        gsap.ticker.remove(tickerFn);
+      };
+    }, containerRef);
 
-        // ── Step 1: Virginia horizontal ──────────────────────────────────────
-        tl.to(worldRef.current, {
-          x: '-100vw', ease: 'none', immediateRender: false,
-        });
-
-        // ── Step 2: Drop VA → Seoul ───────────────────────────────────────────
-        tl.to(worldRef.current, {
-          y: '-100vh', ease: 'none', immediateRender: false,
-        });
-
-        // ── Step 3: Seoul horizontal ─────────────────────────────────────────
-        tl.to(worldRef.current, {
-          x: '-200vw', ease: 'none', immediateRender: false,
-        });
-
-        // ── Step 4: Drop Seoul → LA ───────────────────────────────────────────
-        tl.to(worldRef.current, {
-          y: '-200vh', ease: 'none', immediateRender: false,
-        });
-
-        // ── Step 5: LA horizontal ────────────────────────────────────────────
-        tl.to(worldRef.current, {
-          x: '-300vw', ease: 'none', immediateRender: false,
-        });
-
-        // ── Mouse-follow paraglider ───────────────────────────────────────────
-        const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-        const pos   = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-
-        handleMouseMove = (e: MouseEvent) => {
-          mouse.x = e.clientX;
-          mouse.y = e.clientY;
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-
-        tickerFn = () => {
-          const dt = 1.0 - Math.pow(1.0 - 0.08, gsap.ticker.deltaRatio());
-          pos.x += (mouse.x - pos.x) * dt;
-          pos.y += (mouse.y - pos.y) * dt;
-          gsap.set(characterRef.current, {
-            rotation: (mouse.x - pos.x) * 0.2,
-            x: pos.x - (characterRef.current?.offsetWidth  || 0) / 2,
-            y: pos.y - (characterRef.current?.offsetHeight || 0) / 2,
-            force3D: true,
-          });
-        };
-        gsap.ticker.add(tickerFn);
-
-        // Paraglider idle bob — force3D + lazy keep it on the compositor thread.
-        gsap.to(characterRef.current, {
-          yPercent: 5, duration: 2, repeat: -1, yoyo: true,
-          ease: 'sine.inOut', force3D: true, lazy: true,
-        });
-
-      }, containerRef);
-    };
-
-    init();
-
-    return () => {
-      mounted = false;
-      if (handleMouseMove) window.removeEventListener('mousemove', handleMouseMove);
-      if (tickerFn) gsap.ticker.remove(tickerFn);
-      ctx?.revert();
-    };
+    return () => ctx.revert();
   }, []);
 
   return (
-    // contain: layout paint style → tells the browser this element's layout
-    // and paint are fully self-contained. Prevents scroll/resize in the journey
-    // section from triggering layout recalculations on the rest of the page.
-    <div
-      ref={containerRef}
-      className="relative w-full overflow-hidden"
-      style={{
-        backgroundColor: C.night,
-        minHeight: '100vh',
-        height: '100vh',
-        contain: 'layout paint style',
-      }}
-    >
-
-      {/* ── Loading overlay ─────────────────────────────────────────────────────
-          Covers the section until the terrain bitmap is fully GPU-uploaded.
-          CSS opacity transition on the overlay — no JS animation, zero overhead. */}
-      <div
-        aria-hidden
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden" style={{ backgroundColor: C.night }}>
+      
+      {/* 버지니아 배경: vh 안에 꽉 차도록 설정 */}
+      <div 
+        ref={bgRef}
+        className="fixed top-0 left-0 h-screen transition-opacity duration-500"
         style={{
-          position:   'absolute',
-          inset:       0,
-          zIndex:      50,
-          background:  C.night,
-          opacity:     loaded ? 0 : 1,
-          pointerEvents: loaded ? 'none' : 'all',
-          transition:  'opacity 0.6s ease',
+          width: '140vw', // 가로 이동 거리를 위한 폭
+          backgroundImage: `url(${virginiaBg})`,
+          backgroundSize: 'auto', // 이미지를 화면 높이와 가로에 강제로 맞춤
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center center', // 중앙 정렬
+          zIndex: 1,
+          pointerEvents: 'none',
+          ...GPU
         }}
       />
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          WORLD TRACK — backgrounds + content, all translated together.
-          GPU style on worldRef promotes the entire 400vw × 300vh world to a
-          single compositor layer so GSAP can translate it with zero CPU repaint.
-          ══════════════════════════════════════════════════════════════════════ */}
-      <div
-        ref={worldRef}
-        className="absolute top-0 left-0 w-[400vw] h-[300vh] flex flex-col"
-        style={{ ...GPU, zIndex: 1 }}
-      >
+      <div className="fixed inset-0 transition-colors duration-1000" style={{ zIndex: 0, backgroundColor: currentCity === JourneyStop.SEOUL ? C.twilight : currentCity === JourneyStop.LA ? C.laSky : 'transparent' }} />
 
-        {/* ── Row 1 background · Virginia  (y: 0 → 100vh) ─────────────────── */}
-        {/* GPU style promotes this layer to its own compositor tile so the
-            background renders independently of the content rows above it.     */}
-        <div
-          className="absolute left-0 w-full"
-          style={{ top: 0, height: '100vh', zIndex: 0, ...GPU }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(to bottom,
-                ${C.vaSky}  0%,
-                ${C.vaMid}  60%,
-                ${C.vaMid}  100%)`,
-            }}
-          />
-          {/* decoding="async" offloads bitmap decode to a worker thread so
-              image parsing never blocks the main-thread rendering pipeline.  */}
-          <img
-            src={virginiaBg}
-            alt=""
-            decoding="async"
-            style={{
-              position:       'absolute',
-              left:           0,
-              top:            0,
-              width:          '200vw',
-              height:         '100%',
-              objectFit:      'cover',
-              objectPosition: 'center bottom',
-              filter:         'brightness(1.0) saturate(1.5)',
-              display:        'block',
-            }}
-          />
-        </div>
+      <div className={`absolute inset-0 z-50 bg-[#07091e] transition-opacity duration-1000 ${loaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} />
 
-        {/* ── Row 2 background · Seoul  (y: 100vh → 200vh) ────────────────── */}
-        <div
-          className="absolute left-0 w-full"
-          style={{
-            top: '100vh', height: '100vh', zIndex: 0, ...GPU,
-            background: `linear-gradient(to bottom,
-              ${C.night}    0%,
-              #1a1244       45%,
-              ${C.twilight} 100%)`,
-          }}
-        />
-
-        {/* ── Row 3 background · Los Angeles  (y: 200vh → 300vh) ──────────── */}
-        <div
-          className="absolute left-0 w-full"
-          style={{
-            top: '200vh', height: '100vh', zIndex: 0, ...GPU,
-            background: `linear-gradient(to bottom,
-              ${C.twilight}  0%,
-              ${C.laWarm}    30%,
-              ${C.laSky}     62%,
-              ${C.laSunset}  85%,
-              #ff2020        100%)`,
-          }}
-        />
-
-        {/* ══ ROW 1 · VIRGINIA ══ scrolls x: 0 → −100 vw ══════════════════ */}
-        <div className="relative w-full h-[100vh] flex flex-shrink-0" style={{ zIndex: 1 }}>
-          <CitySection
-            city="Virginia"
-            accent="#fc5400"
-            projects={[]}
-            onProjectClick={onProjectClick}
-          />
-          <div className="w-[100vw] h-full flex-shrink-0" />
-
-          {/* Interactive project dots */}
-          <div className="absolute bottom-0 left-0 w-[100vw] h-[70%] z-20 pointer-events-none">
-            {VA_DOT_POSITIONS.map(({ id, x, y }) => {
-              const project  = VA_PROJECTS.find(p => p.id === id);
-              if (!project) return null;
-              const isActive  = activeDot  === id;
-              const isHovered = hoveredDot === id;
-              return (
-                <div
-                  key={id}
-                  className="absolute pointer-events-none"
-                  style={{ left: `${x}%`, top: `${y}%` }}
-                >
-                  {isActive && (
-                    <div
-                      className="absolute w-60 bg-[#0d1b2a]/95 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-2xl z-30 pointer-events-auto"
-                      style={{ bottom: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)' }}
-                    >
-                      <div className="relative">
-                        <img src={project.thumbnail} alt={project.title} className="w-full h-32 object-cover" decoding="async" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2a] via-transparent to-transparent" />
-                      </div>
-                      <div className="p-4">
-                        <span className="font-mono text-[9px] uppercase tracking-widest text-[#58aa5a]">{project.category}</span>
-                        <h5 className="font-serif text-base font-bold text-white mt-1 leading-tight">{project.title}</h5>
-                        <p className="font-mono text-[10px] text-white/50 mt-2 leading-relaxed">{project.description}</p>
-                        <div className="mt-3 flex flex-wrap gap-1">
-                          {project.tags.map(t => (
-                            <span key={t} className="font-mono text-[8px] border border-white/20 px-2 py-0.5 rounded-full text-white/60">{t}</span>
-                          ))}
-                        </div>
-                        <button
-                          onClick={() => { setActiveDot(null); onProjectClick(project); }}
-                          className="mt-4 w-full font-mono text-[9px] uppercase tracking-wider bg-[#58aa5a] hover:bg-[#6abb6c] text-white py-2 rounded-lg transition-colors"
-                        >
-                          View Full Project →
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  <div
-                    className="absolute pointer-events-auto"
-                    style={{ width: 80, height: 80, top: -30, left: -30 }}
-                    onMouseEnter={() => setHoveredDot(id)}
-                    onMouseLeave={() => setHoveredDot(null)}
-                    onClick={() => setActiveDot(isActive ? null : id)}
-                  >
-                    <span className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 cursor-pointer ${isHovered ? 'dot-float' : ''}`}>
-                      <span className="absolute inset-0 rounded-full bg-[#FF484B] opacity-50 animate-ping" />
-                      <span className="relative block w-5 h-5 rounded-full bg-[#FF484B] border-2 border-white shadow-lg" />
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+      {/* 월드 콘텐츠 */}
+      <div ref={worldRef} className="relative z-10 w-full h-full" style={GPU}>
+        
+        <div className="h-screen w-[300vw] relative overflow-visible">
+          <div className="absolute left-0 top-0 h-full flex items-center px-32">
+             <header className="flex-shrink-0 w-64 border-l-4 pl-6 border-[#fc5400]">
+                <h4 className="font-serif text-4xl font-bold italic text-white">Virginia Stop</h4>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-white/50 mt-2">Interactive Journey</p>
+             </header>
           </div>
+          
+          {VA_DOT_POSITIONS.map(({ id, x, y }) => {
+            const project = VA_PROJECTS.find(p => p.id === id);
+            if (!project) return null;
+            return (
+              <div key={id} className="absolute" style={{ left: `${x}vw`, top: `${y}%` }}>
+                 <div 
+                  className="w-6 h-6 rounded-full bg-[#FF484B] border-2 border-white shadow-lg cursor-pointer pointer-events-auto dot-float"
+                  onClick={() => setActiveDot(activeDot === id ? null : id)}
+                 />
+                 {activeDot === id && (
+                   <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-64 bg-slate-900/95 p-4 rounded-xl border border-white/20 pointer-events-auto shadow-2xl backdrop-blur-sm">
+                      <img src={project.thumbnail} className="w-full h-24 object-cover rounded-lg mb-2" alt="" />
+                      <h5 className="text-white font-bold">{project.title}</h5>
+                      <button onClick={() => onProjectClick(project)} className="mt-2 text-[10px] text-orange-400 font-mono hover:text-orange-300">View Project →</button>
+                   </div>
+                 )}
+              </div>
+            );
+          })}
         </div>
 
-        {/* ══ ROW 2 · SEOUL ══ scrolls x: −100 vw → −200 vw ═══════════════ */}
-        <div className="relative w-full h-[100vh] flex flex-shrink-0" style={{ zIndex: 1 }}>
-          <div className="w-[100vw] h-full flex-shrink-0" />
-          <CitySection
-            city="Seoul"
-            accent="#4480ff"
-            projects={PROJECTS.filter(p => p.id.startsWith('KR'))}
-            onProjectClick={onProjectClick}
-          />
-          <div className="w-[100vw] h-full flex-shrink-0" />
+        <div className="h-screen w-full flex items-center px-32">
+          <CitySection city="Seoul" accent="#4480ff" projects={PROJECTS.filter(p => p.id.startsWith('KR'))} onProjectClick={onProjectClick} />
         </div>
 
-        {/* ══ ROW 3 · LOS ANGELES ══ scrolls x: −200 vw → −300 vw ══════════ */}
-        <div className="relative w-full h-[100vh] flex flex-shrink-0" style={{ zIndex: 1 }}>
-          <div className="w-[200vw] h-full flex-shrink-0" />
-          <CitySection
-            city="Los Angeles"
-            accent="#fffb1d"
-            projects={PROJECTS.filter(p => p.id.startsWith('LA'))}
-            onProjectClick={onProjectClick}
-          />
+        <div className="h-screen w-full flex items-center px-32">
+          <CitySection city="Los Angeles" accent="#fffb1d" projects={PROJECTS.filter(p => p.id.startsWith('LA'))} onProjectClick={onProjectClick} />
         </div>
+      </div>
+
+      <div ref={characterRef} className="fixed top-0 left-0 z-[60] w-32 md:w-48 pointer-events-none" style={{ transform: 'translate(-50%,-50%)', ...GPU }}>
+        <img src="/assets/Artboard 9.png" alt="" className="w-full h-full object-contain" />
       </div>
 
       <style>{`
-        @keyframes dot-float {
-          0%,  100% { transform: translate(-50%, -50%) translateY(0px)   scale(1);    }
-          50%        { transform: translate(-50%, -50%) translateY(-8px)  scale(1.15); }
-        }
         .dot-float { animation: dot-float 1.4s ease-in-out infinite; }
+        @keyframes dot-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
       `}</style>
-
-      {/* Paraglider */}
-      <div
-        ref={characterRef}
-        className="fixed top-0 left-0 z-[60] w-32 md:w-48 pointer-events-none drop-shadow-2xl"
-        style={{ transform: 'translate(-50%,-50%)', ...GPU }}
-      >
-        <img src="/assets/Artboard 9.png" alt="Paraglider" className="w-full h-full object-contain" decoding="async" />
-      </div>
     </div>
   );
 };
 
 const CitySection: React.FC<{
-  city: string;
-  accent: string;
-  projects: ProjectType[];
-  onProjectClick: (p: ProjectType) => void;
-}> = ({ city, accent, projects, onProjectClick }) => (
-  <div className="w-[100vw] h-full relative flex items-center px-12 md:px-32">
-    <div className="relative z-10 flex gap-8 items-center h-full w-full">
+    city: string;
+    accent: string;
+    projects: ProjectType[];
+    onProjectClick: (p: ProjectType) => void;
+  }> = ({ city, accent, projects, onProjectClick }) => (
+    <div className="flex gap-8 items-center h-full w-full">
       <header className="flex-shrink-0 w-64 border-l-4 pl-6" style={{ borderColor: accent }}>
         <h4 className="font-serif text-4xl font-bold italic text-white">{city} Stop</h4>
         <p className="font-mono text-[10px] uppercase tracking-widest text-white/50 mt-2">Interactive Showcase</p>
       </header>
-
-      {projects.length > 0 && (
-        <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide">
-          {projects.map((p) => (
-            <div
-              key={p.id}
-              onClick={() => onProjectClick(p)}
-              className="group relative flex-shrink-0 w-64 h-80 bg-[#1e3040] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-500 border border-white/10 shadow-2xl pointer-events-auto"
-            >
-              <div className="absolute inset-0 grayscale group-hover:grayscale-0 transition-all duration-700">
-                <img src={p.thumbnail} alt={p.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" decoding="async" />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#07091e] via-transparent to-transparent" />
-              <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                <span className="font-mono text-[9px] uppercase tracking-widest mb-1" style={{ color: accent }}>{p.category}</span>
-                <h5 className="font-serif text-lg font-bold text-white leading-tight">{p.title}</h5>
-                <div className="mt-4 flex gap-2 overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity">
-                  {p.tags.map(t => (
-                    <span key={t} className="font-mono text-[8px] border border-white/20 px-2 py-0.5 rounded-full text-white/70 whitespace-nowrap">{t}</span>
-                  ))}
-                </div>
-              </div>
+      <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide">
+        {projects.map((p) => (
+          <div key={p.id} onClick={() => onProjectClick(p)} className="group relative flex-shrink-0 w-64 h-80 bg-[#1e3040] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-500 border border-white/10 shadow-xl">
+            <img src={p.thumbnail} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all" alt="" />
+            <div className="absolute inset-0 p-6 flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent">
+              <span className="text-[9px] uppercase font-mono" style={{ color: accent }}>{p.category}</span>
+              <h5 className="text-lg font-bold text-white font-serif leading-tight">{p.title}</h5>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
 
 export default ParaglidingJourney;
