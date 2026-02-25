@@ -10,11 +10,9 @@ gsap.registerPlugin(ScrollTrigger);
 const C = {
   vaSky: '#a0d4f2',
   vaMid: '#7bb8d8',
-  twilight: '#241760',
-  night: '#07091e',
-  laWarm: '#8a3040',
-  laSky: '#ff6020',
-  laSunset: '#ff3c38',
+  twilight: '#2b1178',
+  night: '#b6cae2',
+  laSky: '#fe6600',
 } as const;
 
 const GPU: React.CSSProperties = {
