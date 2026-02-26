@@ -1,177 +1,271 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-import cloud1 from '../assets/Cloud/Realistic Clouds Overlay 1.png';
-import cloud2 from '../assets/Cloud/Realistic Clouds Overlay 2.png';
-import cloud3 from '../assets/Cloud/Realistic Clouds Overlay 3.png';
-import cloud4 from '../assets/Cloud/Realistic Clouds Overlay 4.png';
+gsap.registerPlugin(ScrollTrigger);
 
-const CLOUD_ASSETS = [cloud1, cloud2, cloud3, cloud4];
+const WAYPOINTS = [
+  { id: 'VA', city: 'Richmond', country: 'Virginia, USA', coords: '37.6660° N, 77.4605° W', accent: '#58aa5a', tag: 'WAYPOINT 01' },
+  { id: 'KR', city: 'Seoul',    country: 'South Korea',   coords: '37.5665° N, 126.978° E',  accent: '#4480ff', tag: 'WAYPOINT 02' },
+  { id: 'LA', city: 'Los Angeles', country: 'California, USA', coords: '34.0522° N, 118.244° W', accent: '#fe6600', tag: 'WAYPOINT 03' },
+];
+
+const GPU: React.CSSProperties = {
+  transform: 'translate3d(0,0,0)',
+  willChange: 'transform',
+  backfaceVisibility: 'hidden',
+};
 
 const Introduction: React.FC = () => {
-  const textRef = useRef<HTMLDivElement>(null);
-  const bgCloudsRef = useRef<HTMLDivElement>(null);
-  const fgCloudsRef = useRef<HTMLDivElement>(null);
+  const sectionRef   = useRef<HTMLElement>(null);
+  const cardRef      = useRef<HTMLDivElement>(null);
+  const waypointsRef = useRef<HTMLDivElement>(null);
+  const headingRef   = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    // Floating animation for intro text
-    gsap.to(textRef.current, {
-      y: 15,
-      duration: 3,
-      repeat: -1,
-      yoyo: true,
-      ease: 'sine.inOut'
-    });
+    const ctx = gsap.context(() => {
+      // Reveal card on scroll-into-view
+      gsap.fromTo(
+        cardRef.current,
+        { opacity: 0, y: 50 },
+        {
+          opacity: 1, y: 0, duration: 1.2, ease: 'power3.out',
+          scrollTrigger: { trigger: sectionRef.current, start: 'top 75%' },
+        }
+      );
 
-    // Animate background clouds (Slow & Deep)
-    const bgClouds = bgCloudsRef.current?.children;
-    if (bgClouds) {
-      Array.from(bgClouds).forEach((cloud, i) => {
-        gsap.to(cloud, {
-          x: '120vw',
-          duration: 40 + i * 15,
-          repeat: -1,
-          ease: 'none',
-          delay: -i * 10
-        });
-        // Subtle drift
-        gsap.to(cloud, {
-          y: '+=30',
-          duration: 3 + i,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut'
-        });
-      });
-    }
+      // Stagger waypoint rows
+      const rows = waypointsRef.current?.children;
+      if (rows) {
+        gsap.fromTo(
+          Array.from(rows),
+          { opacity: 0, x: -30 },
+          {
+            opacity: 1, x: 0, duration: 0.8, stagger: 0.15, ease: 'power2.out',
+            scrollTrigger: { trigger: waypointsRef.current, start: 'top 80%' },
+          }
+        );
+      }
 
-    // Animate foreground clouds (Faster & Closer)
-    const fgClouds = fgCloudsRef.current?.children;
-    if (fgClouds) {
-      Array.from(fgClouds).forEach((cloud, i) => {
-        gsap.to(cloud, {
-          x: '140vw',
-          duration: 25 + i * 8,
-          repeat: -1,
-          ease: 'none',
-          delay: -i * 12
-        });
-        gsap.to(cloud, {
-          y: '-=50',
-          duration: 4 + i,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut'
-        });
+      // Subtle float on the main card
+      gsap.to(cardRef.current, {
+        y: 12,
+        duration: 4,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
       });
-    }
+    }, sectionRef);
+
+    return () => ctx.revert();
   }, []);
 
   return (
-    <section className="relative -mt-px h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#d8f4fe] via-[#a0d4f2] to-[#7db6d6]">
-      
-      {/* BACKGROUND CLOUDS (Behind Text) */}
-      <div ref={bgCloudsRef} className="absolute inset-0 pointer-events-none opacity-60">
-        {[...Array(6)].map((_, i) => (
-          <img 
-            key={`bg-${i}`}
-            src={CLOUD_ASSETS[i % CLOUD_ASSETS.length]}
-            alt="cloud"
-            className="absolute select-none pointer-events-none filter blur-[2px]"
-            style={{
-              width: `${400 + Math.random() * 400}px`,
-              top: `${Math.random() * 80}%`,
-              left: '-40vw',
-              opacity: 0.6 + Math.random() * 0.4
-            }}
-          />
-        ))}
-      </div>
+    <section
+      id="about"
+      ref={sectionRef}
+      className="relative w-full flex items-center justify-center overflow-hidden"
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #07091e 0%, #0a0c24 100%)',
+        padding: '80px 24px',
+      }}
+    >
+      {/* Precision grid background */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: `
+          linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)
+        `,
+        backgroundSize: '80px 80px',
+        zIndex: 1,
+      }} />
 
-      {/* FOREGROUND CLOUDS (In front of Text) */}
-      <div ref={fgCloudsRef} className="absolute inset-0 pointer-events-none z-30">
-        {[...Array(4)].map((_, i) => (
-          <img 
-            key={`fg-${i}`}
-            src={CLOUD_ASSETS[(i + 2) % CLOUD_ASSETS.length]}
-            alt="cloud"
-            className="absolute select-none pointer-events-none"
-            style={{
-              width: `${600 + Math.random() * 400}px`,
-              top: `${10 + Math.random() * 80}%`,
-              left: '-50vw',
-              opacity: 0.8 + Math.random() * 0.2,
-              filter: 'brightness(1.1) contrast(0.9)'
-            }}
-          />
-        ))}
-      </div>
+      {/* Corner brackets — HUD framing */}
+      <Corner pos="top-8 left-8" />
+      <Corner pos="top-8 right-8" mirror="x" />
+      <Corner pos="bottom-8 left-8" mirror="y" />
+      <Corner pos="bottom-8 right-8" mirror="xy" />
 
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-      </div>
+      {/* Glassmorphism mission briefing card */}
+      <div
+        ref={cardRef}
+        className="relative w-full max-w-4xl"
+        style={{ zIndex: 10, opacity: 0, ...GPU }}
+      >
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '20px',
+          padding: 'clamp(32px, 5vw, 56px)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Shimmer edge */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)',
+          }} />
 
-      {/* Main content */}
-      <div ref={textRef} className="relative z-10 text-center px-6 max-w-4xl mix-blend-overlay text-[#071F35]">
-        <h2 className="colence-font text-5xl md:text-7xl lg:text-8xl mb-8 leading-tight text-[#071F35]">
-          Cherin's Journey
-        </h2>
-        
-        <p className="font-serif italic text-lg md:text-2xl text-[#071F35] mb-6 leading-relaxed">
-          A design thinker and creative problem solver. 
-          <span><br></br>Through paragliding across three cities; Richmond, Seoul, and Los Angeles.</span>
-          <span><br></br>I've crafted a portfolio that captures the essence of my design philosophy.</span>
-        </p>
-
-        <div className="mt-12 flex flex-col md:flex-row gap-8 justify-center items-center">
-          <div className="flex-1">
-            <p className="font-mono text-xs uppercase tracking-widest text-[#071F35]/60 mb-3">Specialties</p>
-            <ul className="font-serif text-[#1e3040] space-y-2">
-              <li>✦ User Experience Design</li>
-              <li>✦ Visual Storytelling</li>
-              <li>✦ Interactive Prototypes</li>
-            </ul>
+          {/* Mission header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+            <span className="font-mono" style={{
+              fontSize: '10px', letterSpacing: '0.4em',
+              color: 'rgba(88,170,90,0.8)', textTransform: 'uppercase',
+              padding: '4px 10px',
+              border: '1px solid rgba(88,170,90,0.3)',
+              borderRadius: '4px',
+            }}>
+              MISSION BRIEF
+            </span>
+            <span style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.71)' }} />
+            <span className="font-mono" style={{ fontSize: '10px', letterSpacing: '0.2em', color: 'rgba(255, 255, 255, 0.71)' }}>
+              FLT-2025 / 3 STOPS
+            </span>
           </div>
 
-          <div className="h-32 md:h-48 w-px bg-gradient-to-b from-transparent via-[#1e3040]/30 to-transparent"></div>
+          {/* Main heading */}
+          <h2
+            ref={headingRef}
+            className="colence-font"
+            style={{
+              fontSize: 'clamp(2.5rem, 7vw, 5rem)',
+              color: '#ffffff',
+              lineHeight: 1.05,
+              marginBottom: '50px',
+              fontWeight: 200,
+            }}
+          >
+            Cherin's Journey
+          </h2>
 
-          <div className="flex-1">
-            <p className="font-mono text-xs uppercase tracking-widest text-[#071F35]/60 mb-3">Approach</p>
-            <ul className="font-serif text-[#1e3040] space-y-2">
-              <li>✦ Data-Driven Design</li>
-              <li>✦ Human-Centered Solutions</li>
-              <li>✦ Creative Innovation</li>
-            </ul>
+          {/* Bio text */}
+          <p className="font-serif" style={{
+            fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+            color: 'rgba(255,255,255,0.55)',
+            lineHeight: 1.75,
+            maxWidth: '600px',
+            marginBottom: '48px',
+            fontStyle: 'italic',
+          }}>
+            A design thinker and creative problem solver — paragliding across three cities,
+            crafting work that captures the essence of human-centered design philosophy.
+          </p>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', marginBottom: '36px' }} />
+
+          {/* Waypoints */}
+          <div ref={waypointsRef} style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+            {WAYPOINTS.map((wp, i) => (
+              <div
+                key={wp.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '20px',
+                  padding: '18px 0',
+                  borderBottom: i < WAYPOINTS.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                  opacity: 0, // revealed by GSAP
+                }}
+              >
+                {/* Accent dot + line */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <div style={{
+                    width: '8px', height: '8px', borderRadius: '50%',
+                    background: wp.accent,
+                    boxShadow: `0 0 10px ${wp.accent}88`,
+                  }} />
+                  {i < WAYPOINTS.length - 1 && (
+                    <div style={{ width: '1px', height: '40px', background: `linear-gradient(${wp.accent}44, transparent)` }} />
+                  )}
+                </div>
+
+                {/* Tag */}
+                <span className="font-mono" style={{
+                  fontSize: '8px', letterSpacing: '0.3em',
+                  color: wp.accent + 'aa',
+                  textTransform: 'uppercase',
+                  flexShrink: 0, width: '80px',
+                }}>
+                  {wp.tag}
+                </span>
+
+                {/* City name */}
+                <span className="font-serif" style={{
+                  fontSize: 'clamp(1.1rem, 2.5vw, 1.6rem)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  flex: 1,
+                }}>
+                  {wp.city}
+                  <span style={{ fontSize: '0.55em', color: 'rgba(255,255,255,0.35)', fontWeight: 300, marginLeft: '10px', fontStyle: 'italic' }}>
+                    {wp.country}
+                  </span>
+                </span>
+
+                {/* Coords */}
+                <span className="font-mono" style={{
+                  fontSize: '10px', letterSpacing: '0.1em',
+                  color: 'rgba(255, 255, 255, 0.71)',
+                  display: 'none', // hidden on small screens via media
+                }}>
+                  {wp.coords}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom skills strip */}
+          <div style={{ marginTop: '40px', display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+            {['UX Design', 'Visual Storytelling', 'Interactive Prototypes', 'Data-Driven Design', 'Human-Centered'].map(skill => (
+              <span key={skill} className="font-mono" style={{
+                fontSize: '12px', letterSpacing: '0.25em',
+                color: 'rgba(255, 255, 255, 0.91)',
+                textTransform: 'uppercase',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                {skill}
+              </span>
+            ))}
           </div>
         </div>
-
-        <div className="mt-12 font-mono text-xs uppercase tracking-[0.2em] text-[#071F35]/40">
-          Scroll to begin the expedition
-        </div>
       </div>
+
+      {/* Bottom fade */}
+      <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{
+        height: '25vh',
+        zIndex: 20,
+        background: 'linear-gradient(to bottom, transparent 0%, #07091e 100%)',
+      }} />
 
       <style>{`
         @font-face {
           font-family: 'Colence';
           src: url('/assets/font/Colence-Regular.ttf') format('truetype');
         }
-        .colence-font {
-          font-family: 'Colence', serif;
-          font-style: normal;
-        }
-        /* Create a soft atmospheric haze */
-        section::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at center, transparent 0%, rgba(255,255,255,0.2) 100%);
-          pointer-events: none;
-          z-index: 25;
-        }
+        .colence-font { font-family: 'Colence', serif; }
       `}</style>
     </section>
+  );
+};
+
+// HUD corner bracket decoration
+const Corner: React.FC<{ pos: string; mirror?: string }> = ({ pos, mirror }) => {
+  const scaleX = mirror?.includes('x') ? -1 : 1;
+  const scaleY = mirror?.includes('y') ? -1 : 1;
+  return (
+    <div
+      className={`absolute ${pos} pointer-events-none`}
+      style={{ zIndex: 5, transform: `scale(${scaleX}, ${scaleY})` }}
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M0 24 L0 0 L24 0" stroke="rgba(255,255,255,0.12)" strokeWidth="1" fill="none" />
+      </svg>
+    </div>
   );
 };
 

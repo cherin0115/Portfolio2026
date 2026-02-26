@@ -1,6 +1,14 @@
 
 import { Project, CityData, JourneyStop } from './types';
 
+// ── Premium Sky Gradients per city ──────────────────────────────────────
+export const GRADIENTS = {
+  virginia: 'linear-gradient(180deg, #c4e0f4 0%, #a8ccec 35%, #7aadd8 70%, #5590c8 100%)',
+  seoul:    'linear-gradient(180deg, #040112 0%, #0e053a 20%, #2b1178 50%, #4c2aaa 75%, #7744e8 100%)',
+  la:       'linear-gradient(180deg, #0d0020 0%, #3a0d58 25%, #9a2a48 55%, #d44a20 78%, #fe6600 100%)',
+  landing:  'linear-gradient(180deg, #07091e 0%, #0c0c2c 40%, #111428 100%)',
+} as const;
+
 export const PROJECTS: Project[] = [
   // Virginia Projects
   {

@@ -7,6 +7,7 @@ import Introduction from './components/Introduction';
 import ParaglidingJourney from './components/ParaglidingJourney';
 import ProjectDetail from './components/ProjectDetail';
 import AdaptiveHudCaseStudy from './components/HUD';
+import Navbar from './components/Navbar';
 import { Project } from './types';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -101,10 +102,24 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="relative bg-[#07091e] min-h-screen">
+    <div className="relative min-h-screen" style={{ backgroundColor: '#07091e' }}>
+      {/* Global sticky navbar — hidden inside the HUD iframe view */}
+      <Navbar visible={!isHudOpen} />
+
       {/* Wipe / Foveal Transition Overlay */}
-      <div className="wipe-overlay fixed inset-0 bg-white z-[9999] rounded-full scale-0 opacity-0 pointer-events-none flex items-center justify-center">
-        <div className="text-[#1e3040] font-mono text-sm tracking-widest animate-pulse">INITIATING DATA LINK...</div>
+      <div
+        className="wipe-overlay fixed inset-0 z-[9999] rounded-full scale-0 opacity-0 pointer-events-none flex items-center justify-center"
+        style={{ backgroundColor: '#07091e' }}
+      >
+        <div className="font-mono" style={{
+          color: 'rgba(255,255,255,0.4)',
+          fontSize: '10px',
+          letterSpacing: '0.4em',
+          textTransform: 'uppercase',
+          animation: 'pulse 1.5s ease-in-out infinite',
+        }}>
+          INITIATING DATA LINK...
+        </div>
       </div>
 
       {/* Main Content */}
