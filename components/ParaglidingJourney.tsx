@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { PROJECTS, CITY_HUB, GRADIENTS } from '../constants';
 import { JourneyStop, Project as ProjectType } from '../types';
 import virginiaBg from '../assets/bg_Virginia.webp';
+import AdaptiveHUD, { HudData } from './AdaptiveHUD';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -52,20 +53,12 @@ const VA_DOT_POSITIONS = [
 ];
 const VA_PROJECTS = PROJECTS.filter(p => p.id.startsWith('VA'));
 
-// ── HUD data shape ────────────────────────────────────────────────────────
-interface HudData {
-  city: string;
-  coords: string;
-  altitude: number;
-  progress: number;
-  accent: string;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 const ParaglidingJourney: React.FC<{
   onUpdateHud: (data: any) => void;
   onProjectClick: (project: ProjectType) => void;
-}> = ({ onUpdateHud, onProjectClick }) => {
+  introComplete?: boolean;
+}> = ({ onUpdateHud, onProjectClick, introComplete = false }) => {
   const containerRef  = useRef<HTMLDivElement>(null);
   const worldRef      = useRef<HTMLDivElement>(null);
   const characterRef  = useRef<HTMLDivElement>(null);
@@ -373,8 +366,8 @@ const ParaglidingJourney: React.FC<{
         />
       </div>
 
-      {/* ── Fixed FlightHUD panel ─────────────────────────────────────── */}
-      <FlightHUD data={hudData} />
+      {/* ── Adaptive HUD — boots up after IntroScene completes ───────── */}
+      <AdaptiveHUD data={hudData} booted={introComplete} />
 
       <style>{`
         .dot-float { animation: dot-float 1.4s ease-in-out infinite; }
@@ -392,108 +385,6 @@ const ParaglidingJourney: React.FC<{
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Fixed Flight HUD panel
-// ─────────────────────────────────────────────────────────────────────────────
-const FlightHUD: React.FC<{ data: HudData }> = ({ data }) => {
-  const bars = Math.round(data.progress / 10); // 0-10
-
-  return (
-    <div
-      className="fixed"
-      style={{
-        top: '70px',
-        left: '24px',
-        zIndex: 55,
-        pointerEvents: 'none',
-        minWidth: '200px',
-      }}
-    >
-      <div style={{
-        background: 'rgba(102, 136, 163, 0.54)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: `1px solid ${data.accent}33`,
-        borderRadius: '12px',
-        padding: '16px 20px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* Accent edge */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, bottom: 0, width: '2px',
-          background: data.accent,
-          opacity: 0.8,
-          transition: 'background 0.8s ease',
-        }} />
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-          background: `linear-gradient(90deg, ${data.accent}66, transparent)`,
-          transition: 'background 0.8s ease',
-        }} />
-
-        {/* Header row */}
-        <div className="font-mono" style={{
-          fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase',
-          color: data.accent, marginBottom: '10px', paddingLeft: '4px',
-          transition: 'color 0.6s ease',
-        }}>
-          ● IN FLIGHT
-        </div>
-
-        {/* City */}
-        <div className="font-serif" style={{
-          fontSize: '1rem', color: '#ffffff', fontWeight: 700,
-          marginBottom: '4px', paddingLeft: '4px',
-        }}>
-          {data.city}
-        </div>
-
-        {/* Coords */}
-        <div className="font-mono" style={{
-          fontSize: '8px', letterSpacing: '0.1em', color: 'rgba(255, 255, 255, 0.61)',
-          marginBottom: '14px', paddingLeft: '4px',
-        }}>
-          {data.coords}
-        </div>
-
-        {/* Altitude */}
-        <HudRow label="ALT" value={`${data.altitude}m`} accent={data.accent} />
-        <HudRow label="PROG" value={`${data.progress}%`} accent={data.accent} />
-
-        {/* Progress bar */}
-        <div style={{
-          marginTop: '15px', paddingLeft: '4px',
-          display: 'flex', gap: '3px',
-        }}>
-          {Array.from({ length: 10 }, (_, i) => (
-            <div
-              key={i}
-              style={{
-                flex: 1, height: 'px',
-                background: i < bars ? data.accent : 'rgba(255, 255, 255, 0.16)',
-                borderRadius: '2px',
-                transition: 'background 0.3s ease',
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const HudRow: React.FC<{ label: string; value: string; accent: string }> = ({ label, value, accent }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',  marginBottom: '6px', paddingLeft: '4px' }}>
-    <span className="font-mono" style={{ fontSize: '10px', letterSpacing: '0.2em', color: 'rgb(255, 255, 255)', textTransform: 'uppercase' }}>
-      {label}
-    </span>
-    <span className="font-mono" style={{ fontSize: '12px', letterSpacing: '0.1em', color: accent, fontWeight: 700, transition: 'color 0.6s ease' }}>
-      {value}
-    </span>
-  </div>
-);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Section label / city header

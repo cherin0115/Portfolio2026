@@ -8,13 +8,16 @@ import ParaglidingJourney from './components/ParaglidingJourney';
 import ProjectDetail from './components/ProjectDetail';
 import AdaptiveHudCaseStudy from './components/HUD';
 import Navbar from './components/Navbar';
+import IntroScene from './components/IntroScene';
 import { Project } from './types';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const App: React.FC = () => {
+  const [showIntro,       setShowIntro]       = useState(true);
+  const [introComplete,   setIntroComplete]   = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isHudOpen, setIsHudOpen] = useState(false);
+  const [isHudOpen,       setIsHudOpen]       = useState(false);
   const [, setHudData] = useState({
     city: 'Glen Allen, VA',
     coords: '37.6660° N, 77.4605° W',
@@ -22,8 +25,13 @@ const App: React.FC = () => {
     progress: 0
   });
 
-  const mainRef = useRef<HTMLDivElement>(null);
+  const mainRef      = useRef<HTMLDivElement>(null);
   const savedScrollY = useRef(0);
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    setIntroComplete(true);
+  };
 
   const handleProjectClick = (project: Project) => {
     if (project.id === 'VA-01') {
@@ -36,12 +44,7 @@ const App: React.FC = () => {
         ease: 'power4.inOut',
         onComplete: () => setIsHudOpen(true),
       })
-      .to('.wipe-overlay', {
-        scale: 5,
-        opacity: 0,
-        duration: 0.8,
-        ease: 'power4.out',
-      });
+      .to('.wipe-overlay', { scale: 5, opacity: 0, duration: 0.8, ease: 'power4.out' });
       return;
     }
 
@@ -56,12 +59,7 @@ const App: React.FC = () => {
         window.scrollTo(0, 0);
       }
     })
-    .to('.wipe-overlay', {
-      scale: 5,
-      opacity: 0,
-      duration: 0.8,
-      ease: 'power4.out'
-    });
+    .to('.wipe-overlay', { scale: 5, opacity: 0, duration: 0.8, ease: 'power4.out' });
   };
 
   const closeHud = () => {
@@ -76,12 +74,7 @@ const App: React.FC = () => {
         window.scrollTo(0, savedScrollY.current);
       },
     })
-    .to('.wipe-overlay', {
-      scale: 5,
-      opacity: 0,
-      duration: 0.6,
-      ease: 'power4.out',
-    });
+    .to('.wipe-overlay', { scale: 5, opacity: 0, duration: 0.6, ease: 'power4.out' });
   };
 
   const closeProject = () => {
@@ -93,56 +86,67 @@ const App: React.FC = () => {
       ease: 'power4.inOut',
       onComplete: () => setSelectedProject(null)
     })
-    .to('.wipe-overlay', {
-      scale: 0,
-      opacity: 0,
-      duration: 0.6,
-      ease: 'power4.out'
-    });
+    .to('.wipe-overlay', { scale: 0, opacity: 0, duration: 0.6, ease: 'power4.out' });
   };
 
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: '#07091e' }}>
-      {/* Global sticky navbar — hidden inside the HUD iframe view */}
-      <Navbar visible={!isHudOpen} />
 
-      {/* Wipe / Foveal Transition Overlay */}
+      {/* ── Cinematic Intro ─────────────────────────────────────────── */}
+      {showIntro && <IntroScene onComplete={handleIntroComplete} />}
+
+      {/* ── Film Grain overlay ──────────────────────────────────────── */}
+      <div className="film-grain" style={{ pointerEvents: 'none' }} />
+
+      {/* ── Vignette overlay ────────────────────────────────────────── */}
+      <div style={{
+        position: 'fixed', inset: 0,
+        background: 'radial-gradient(ellipse at 50% 40%, transparent 45%, rgba(0,0,0,0.65) 100%)',
+        zIndex: 9201,
+        pointerEvents: 'none',
+      }} />
+
+      {/* ── Sticky Navbar ───────────────────────────────────────────── */}
+      <Navbar visible={introComplete && !isHudOpen} />
+
+      {/* ── Wipe transition overlay ─────────────────────────────────── */}
       <div
         className="wipe-overlay fixed inset-0 z-[9999] rounded-full scale-0 opacity-0 pointer-events-none flex items-center justify-center"
         style={{ backgroundColor: '#07091e' }}
       >
         <div className="font-mono" style={{
-          color: 'rgba(255,255,255,0.4)',
-          fontSize: '10px',
-          letterSpacing: '0.4em',
+          color: 'rgba(255,255,255,0.35)',
+          fontSize: '9px',
+          letterSpacing: '0.5em',
           textTransform: 'uppercase',
-          animation: 'pulse 1.5s ease-in-out infinite',
         }}>
           INITIATING DATA LINK...
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* ── Main Content ────────────────────────────────────────────── */}
       <div ref={mainRef} className={selectedProject || isHudOpen ? 'hidden' : 'block'}>
-        <Landing />
+        <Landing introComplete={introComplete} />
         <Introduction />
         <ParaglidingJourney
           onProjectClick={handleProjectClick}
           onUpdateHud={(data) => setHudData(prev => ({ ...prev, ...data }))}
+          introComplete={introComplete}
         />
       </div>
 
-      {/* Detail Page */}
+      {/* ── Project Detail ──────────────────────────────────────────── */}
       {selectedProject && (
         <ProjectDetail project={selectedProject} onClose={closeProject} />
       )}
 
-      {/* Adaptive HUD Case Study */}
+      {/* ── HUD Case Study ──────────────────────────────────────────── */}
       {isHudOpen && (
-        <div className="fixed inset-0 z-[9998] bg-[#07091e] overflow-y-auto">
+        <div className="fixed inset-0 z-[9998] overflow-y-auto" style={{ background: '#07091e' }}>
           <button
             onClick={closeHud}
-            className="fixed top-6 right-8 z-[10000] text-white/60 hover:text-white font-mono text-2xl leading-none transition-colors"
+            className="fixed top-6 right-8 z-[10000] font-mono text-2xl leading-none"
+            style={{ color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}
             aria-label="Close"
           >
             ×
@@ -150,6 +154,30 @@ const App: React.FC = () => {
           <AdaptiveHudCaseStudy />
         </div>
       )}
+
+      {/* ── Global styles ───────────────────────────────────────────── */}
+      <style>{`
+        /* Film grain */
+        .film-grain {
+          position: fixed;
+          inset: -100%;
+          width: 300%;
+          height: 300%;
+          opacity: 0.038;
+          z-index: 9200;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+          animation: film-grain 0.18s steps(2) infinite;
+          mix-blend-mode: overlay;
+        }
+        @keyframes film-grain {
+          0%   { transform: translate(0,    0)    }
+          20%  { transform: translate(-3%,  4%)   }
+          40%  { transform: translate(4%,  -3%)   }
+          60%  { transform: translate(-4%,  2%)   }
+          80%  { transform: translate(3%,  -4%)   }
+          100% { transform: translate(0,    0)    }
+        }
+      `}</style>
     </div>
   );
 };

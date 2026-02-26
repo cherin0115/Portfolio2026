@@ -31,11 +31,15 @@ const GPU: React.CSSProperties = {
   backfaceVisibility: 'hidden',
 };
 
-const Landing: React.FC = () => {
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&';
+
+const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
   const heroRef      = useRef<HTMLDivElement>(null);
   const bgCloudsRef  = useRef<HTMLDivElement>(null);
   const fgCloudsRef  = useRef<HTMLDivElement>(null);
   const scanlineRef  = useRef<HTMLDivElement>(null);
+  const nameRef      = useRef<HTMLSpanElement>(null);
+  const didScramble  = useRef(false);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -89,6 +93,32 @@ const Landing: React.FC = () => {
 
     return () => ctx.revert();
   }, []);
+
+  // Title scramble — fires once when IntroScene completes
+  useEffect(() => {
+    if (!introComplete || didScramble.current || !nameRef.current) return;
+    didScramble.current = true;
+
+    const el     = nameRef.current;
+    const target = 'Cherin';
+    let iteration = 0;
+    const id = setInterval(() => {
+      el.textContent = target
+        .split('')
+        .map((_char, i) => {
+          if (i < Math.floor(iteration)) return target[i];
+          return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+        })
+        .join('');
+      iteration += 0.22;
+      if (iteration >= target.length + 3) {
+        el.textContent = target;
+        clearInterval(id);
+      }
+    }, 40);
+
+    return () => clearInterval(id);
+  }, [introComplete]);
 
   return (
     <section
@@ -178,7 +208,7 @@ const Landing: React.FC = () => {
             }}
           >
             Hi, I'm <br />
-            <span style={{ fontWeight: 700, color: '#ffffff' }}>Cherin</span>
+            <span ref={nameRef} style={{ fontWeight: 700, color: '#ffffff' }}>Cherin</span>
           </h1>
 
           {/* HUD data strip below name */}
