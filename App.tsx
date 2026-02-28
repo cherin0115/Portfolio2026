@@ -14,8 +14,8 @@ import { Project } from './types';
 gsap.registerPlugin(ScrollTrigger);
 
 const App: React.FC = () => {
-  const [showIntro,       setShowIntro]       = useState(true);
-  const [introComplete,   setIntroComplete]   = useState(false);
+  const [showIntro,       setShowIntro]       = useState(() => !sessionStorage.getItem('intro_done'));
+  const [introComplete,   setIntroComplete]   = useState(() => !!sessionStorage.getItem('intro_done'));
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isHudOpen,       setIsHudOpen]       = useState(false);
   const [, setHudData] = useState({
@@ -29,6 +29,7 @@ const App: React.FC = () => {
   const savedScrollY = useRef(0);
 
   const handleIntroComplete = () => {
+    sessionStorage.setItem('intro_done', '1');
     setShowIntro(false);
     setIntroComplete(true);
   };
@@ -54,10 +55,7 @@ const App: React.FC = () => {
       scale: 1,
       duration: 0.8,
       ease: 'power4.inOut',
-      onComplete: () => {
-        setSelectedProject(project);
-        window.scrollTo(0, 0);
-      }
+      onComplete: () => setSelectedProject(project),
     })
     .to('.wipe-overlay', { scale: 5, opacity: 0, duration: 0.8, ease: 'power4.out' });
   };
@@ -84,7 +82,18 @@ const App: React.FC = () => {
       opacity: 1,
       duration: 0.6,
       ease: 'power4.inOut',
-      onComplete: () => setSelectedProject(null)
+      onComplete: () => {
+        setSelectedProject(null);
+        tl.pause();
+        requestAnimationFrame(() => {
+          const savedY = sessionStorage.getItem('pj_scroll_y');
+          if (savedY) {
+            window.scrollTo(0, parseInt(savedY, 10));
+            ScrollTrigger.update();
+          }
+          tl.resume();
+        });
+      },
     })
     .to('.wipe-overlay', { scale: 0, opacity: 0, duration: 0.6, ease: 'power4.out' });
   };

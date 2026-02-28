@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
 import { PROJECTS, CITY_HUB } from '../constants';
 import { JourneyStop, Project as ProjectType } from '../types';
 import richmondBg from '../assets/Richmond.png';
@@ -60,6 +61,8 @@ const CLOUDS = [
 ];
 
 const laBgUrl = new URL('../assets/Los angeles.png', import.meta.url).href;
+
+const SCROLL_KEY = 'pj_scroll_y';
 
 const ParaglidingJourney: React.FC<{
   onUpdateHud: (data: any) => void;
@@ -154,6 +157,20 @@ const ParaglidingJourney: React.FC<{
 
       mainTl.to(worldRef.current, { x: '-400vw', ease: 'none' }, 0);
 
+      // ── Scroll position persistence ───────────────────────────────────────
+      const onScrollSave = () => sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+      window.addEventListener('scroll', onScrollSave, { passive: true });
+
+      // Restore after pin is initialised so the saved Y maps correctly
+      const savedY = sessionStorage.getItem(SCROLL_KEY);
+      if (savedY) {
+        const targetY = parseInt(savedY, 10);
+        requestAnimationFrame(() => {
+          window.scrollTo(0, targetY);
+          ScrollTrigger.update();
+        });
+      }
+
       const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       const pos   = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       const onMouseMove = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; };
@@ -176,12 +193,18 @@ const ParaglidingJourney: React.FC<{
 
       return () => {
         window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('scroll', onScrollSave);
         gsap.ticker.remove(tickerFn);
       };
     }, containerRef);
 
     return () => ctx.revert();
   }, []);
+
+  const handleProjectClick = React.useCallback((project: ProjectType) => {
+    sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+    onProjectClick(project);
+  }, [onProjectClick]);
 
   const cloudFilter = CLOUD_FILTER[currentCity] ?? 'none';
   const cityAccent  = PALETTE.accent[currentCity] ?? PALETTE.accent[JourneyStop.VIRGINIA];
@@ -217,7 +240,7 @@ const ParaglidingJourney: React.FC<{
               accent={PALETTE.accent[JourneyStop.VIRGINIA]}
               coords="37.6660° N, 77.4605° W"
               projects={PROJECTS.filter(p => p.id.startsWith('VA'))}
-              onProjectClick={onProjectClick}
+              onProjectClick={handleProjectClick}
             />
           </div>
         </div>
@@ -233,7 +256,7 @@ const ParaglidingJourney: React.FC<{
               accent={PALETTE.accent[JourneyStop.SEOUL]}
               coords="37.5665° N, 126.978° E"
               projects={PROJECTS.filter(p => p.id.startsWith('KR'))}
-              onProjectClick={onProjectClick}
+              onProjectClick={handleProjectClick}
             />
           </div>
         </div>
@@ -249,7 +272,7 @@ const ParaglidingJourney: React.FC<{
               accent={PALETTE.accent[JourneyStop.LA]}
               coords="34.0522° N, 118.244° W"
               projects={PROJECTS.filter(p => p.id.startsWith('LA'))}
-              onProjectClick={onProjectClick}
+              onProjectClick={handleProjectClick}
             />
           </div>
         </div>
@@ -288,7 +311,7 @@ const CityHeader: React.FC<{ tag: string; city: string; sub: string; accent: str
 const CitySection: React.FC<{ tag: string; city: string; sub: string; accent: string; coords: string; projects: ProjectType[]; onProjectClick: (p: ProjectType) => void; }> = ({ tag, city, sub, accent, coords, projects, onProjectClick }) => (
   <div style={{ display: 'flex', gap: 'clamp(16px, 3vw, 48px)', alignItems: 'center', width: '100%' }}>
     <CityHeader tag={tag} city={city} sub={sub} accent={accent} coords={coords} />
-    <div className="scrollbar-hide" style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', flex: 1, WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
+    <div className="scrollbar-hide" style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', flex: 1, touchAction: 'pan-x' }}>
       {projects.map(p => (
         <ProjectCard key={p.id} project={p} accent={accent} onClick={() => onProjectClick(p)} />
       ))}
