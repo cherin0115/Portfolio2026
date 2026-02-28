@@ -1,0 +1,88 @@
+/* Vintage Pastel Theme — Global Styles */
+:root {
+  --color-richmond: #8C3A3A; /* deep brick red for reference, not used in palette */
+  --color-va:    #8CC8C0;   /* soft seafoam teal   */
+  --color-seoul: #A8B8D8;   /* soft periwinkle     */
+  --color-la:    #D8B888;   /* warm golden peach   */
+  --sky-deep:    #5A7BAE;   /* deep pastel blue    */
+  --cream:       #F9F1E7;   /* warm cream          */
+  --dusty-pink:  #E8B4B8;   /* soft dusty pink     */
+  --soft-peach:  #F4D793;   /* muted peach         */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Quicksand', 'Alice', sans-serif;
+  background-color: var(--sky-deep);
+  color: var(--cream);
+  overflow-x: hidden;
+  min-height: 100vh;
+  /* Film grain texture overlay */
+  background-image:
+    url('/assets/film_grain.png'),
+    linear-gradient(var(--sky-deep), var(--sky-deep));
+  background-blend-mode: multiply;
+  background-size: cover, cover;
+  background-repeat: repeat, no-repeat;
+}
+
+.font-mono  { font-family: 'Quicksand', sans-serif; font-weight: 600; letter-spacing: 0.05em; }
+.font-serif { font-family: 'Alice', serif; }
+
+::-webkit-scrollbar { display: none; }
+html { scrollbar-width: none; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Alice', 'Quicksand', serif;
+  color: var(--cream);
+  letter-spacing: 0.01em;
+}
+
+.section-bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 24px;
+  box-shadow: 0 4px 32px 0 rgba(90,123,174,0.08);
+  overflow: hidden;
+}
+
+/* Section backgrounds */
+.richmond-bg {
+  background-image: url('/assets/Richmond.png');
+}
+.seoul-bg {
+  background-image: url('/assets/Seoul.png');
+}
+.la-bg {
+  background-image: url('/assets/Los_angeles.png');
+}
+
+/* Pastel cloud/element accents */
+.pastel-cloud {
+  background: var(--dusty-pink);
+  border-radius: 50%;
+  box-shadow: 0 2px 12px 0 rgba(232,180,184,0.12);
+}
+.pastel-peach {
+  background: var(--soft-peach);
+  border-radius: 50%;
+  box-shadow: 0 2px 12px 0 rgba(244,215,147,0.12);
+}
+
+/* Cream highlight for text */
+.cream-text {
+  color: var(--cream);
+}
+
+/* Subtle matte paper overlay for analog feel */
+.paper-texture {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url('/assets/paper_texture.png');
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+}

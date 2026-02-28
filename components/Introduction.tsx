@@ -5,9 +5,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 const WAYPOINTS = [
-  { id: 'VA', city: 'Richmond', country: 'Virginia, USA', coords: '37.6660° N, 77.4605° W', accent: '#58aa5a', tag: 'WAYPOINT 01' },
-  { id: 'KR', city: 'Seoul',    country: 'South Korea',   coords: '37.5665° N, 126.978° E',  accent: '#4480ff', tag: 'WAYPOINT 02' },
-  { id: 'LA', city: 'Los Angeles', country: 'California, USA', coords: '34.0522° N, 118.244° W', accent: '#fe6600', tag: 'WAYPOINT 03' },
+  { id: 'VA', city: 'Richmond',    country: 'Virginia, USA',    coords: '37.6660° N, 77.4605° W', accent: '#8CC8C0', tag: 'WAYPOINT 01' },
+  { id: 'KR', city: 'Seoul',       country: 'South Korea',      coords: '37.5665° N, 126.978° E', accent: '#A8B8D8', tag: 'WAYPOINT 02' },
+  { id: 'LA', city: 'Los Angeles', country: 'California, USA',  coords: '34.0522° N, 118.244° W', accent: '#D8B888', tag: 'WAYPOINT 03' },
 ];
 
 const GPU: React.CSSProperties = {
@@ -67,15 +67,15 @@ const Introduction: React.FC = () => {
       className="relative w-full flex items-center justify-center overflow-hidden"
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #07091e 0%, #0a0c24 100%)',
+        background: 'linear-gradient(180deg, #3A5B8A 0%, #4A6B9A 100%)',
         padding: '80px 24px',
       }}
     >
       {/* Precision grid background */}
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: `
-          linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)
+          linear-gradient(rgba(249,241,231,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(249,241,231,0.04) 1px, transparent 1px)
         `,
         backgroundSize: '80px 80px',
         zIndex: 1,
@@ -94,10 +94,10 @@ const Introduction: React.FC = () => {
         style={{ zIndex: 10, opacity: 0, ...GPU }}
       >
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
+          background: 'rgba(249,241,231,0.06)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(249,241,231,0.15)',
           borderRadius: '20px',
           padding: 'clamp(32px, 5vw, 56px)',
           position: 'relative',
@@ -106,22 +106,23 @@ const Introduction: React.FC = () => {
           {/* Shimmer edge */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(249,241,231,0.3) 50%, transparent 100%)',
           }} />
 
           {/* Mission header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
             <span className="font-mono" style={{
+              fontFamily: "'Quicksand', 'Alice', sans-serif",
               fontSize: '10px', letterSpacing: '0.4em',
-              color: 'rgba(88,170,90,0.8)', textTransform: 'uppercase',
+              color: 'rgba(244,215,147,0.85)', textTransform: 'uppercase',
               padding: '4px 10px',
-              border: '1px solid rgba(88,170,90,0.3)',
+              border: '1px solid rgba(244,215,147,0.35)',
               borderRadius: '4px',
             }}>
               MISSION BRIEF
             </span>
-            <span style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.71)' }} />
-            <span className="font-mono" style={{ fontSize: '10px', letterSpacing: '0.2em', color: 'rgba(255, 255, 255, 0.71)' }}>
+            <span style={{ flex: 1, height: '1px', background: 'rgba(249,241,231,0.4)' }} />
+            <span className="font-mono" style={{ fontFamily: "'Quicksand', 'Alice', sans-serif", fontSize: '10px', letterSpacing: '0.2em', color: 'rgba(249,241,231,0.55)' }}>
               FLT-2025 / 3 STOPS
             </span>
           </div>
@@ -131,8 +132,9 @@ const Introduction: React.FC = () => {
             ref={headingRef}
             className="colence-font"
             style={{
+              fontFamily: "'Alice', 'Quicksand', serif",
               fontSize: 'clamp(2.5rem, 7vw, 5rem)',
-              color: '#ffffff',
+              color: '#F9F1E7',
               lineHeight: 1.05,
               marginBottom: '50px',
               fontWeight: 200,
@@ -143,8 +145,9 @@ const Introduction: React.FC = () => {
 
           {/* Bio text */}
           <p className="font-serif" style={{
+            fontFamily: "'Alice', 'Quicksand', serif",
             fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-            color: 'rgba(255,255,255,0.55)',
+            color: 'rgba(249,241,231,0.6)',
             lineHeight: 1.75,
             maxWidth: '600px',
             marginBottom: '48px',
@@ -155,7 +158,7 @@ const Introduction: React.FC = () => {
           </p>
 
           {/* Divider */}
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', marginBottom: '36px' }} />
+          <div style={{ height: '1px', background: 'rgba(249,241,231,0.12)', marginBottom: '36px' }} />
 
           {/* Waypoints */}
           <div ref={waypointsRef} style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
@@ -167,7 +170,7 @@ const Introduction: React.FC = () => {
                   alignItems: 'center',
                   gap: '20px',
                   padding: '18px 0',
-                  borderBottom: i < WAYPOINTS.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                  borderBottom: i < WAYPOINTS.length - 1 ? '1px solid rgba(249,241,231,0.1)' : 'none',
                   opacity: 0, // revealed by GSAP
                 }}
               >
@@ -196,12 +199,12 @@ const Introduction: React.FC = () => {
                 {/* City name */}
                 <span className="font-serif" style={{
                   fontSize: 'clamp(1.1rem, 2.5vw, 1.6rem)',
-                  color: '#ffffff',
+                  color: '#F9F1E7',
                   fontWeight: 700,
                   flex: 1,
                 }}>
                   {wp.city}
-                  <span style={{ fontSize: '0.55em', color: 'rgba(255,255,255,0.35)', fontWeight: 300, marginLeft: '10px', fontStyle: 'italic' }}>
+                  <span style={{ fontSize: '0.55em', color: 'rgba(249,241,231,0.45)', fontWeight: 300, marginLeft: '10px', fontStyle: 'italic' }}>
                     {wp.country}
                   </span>
                 </span>
@@ -209,7 +212,7 @@ const Introduction: React.FC = () => {
                 {/* Coords */}
                 <span className="font-mono" style={{
                   fontSize: '10px', letterSpacing: '0.1em',
-                  color: 'rgba(255, 255, 255, 0.71)',
+                  color: 'rgba(249,241,231,0.5)',
                   display: 'none', // hidden on small screens via media
                 }}>
                   {wp.coords}
@@ -223,11 +226,11 @@ const Introduction: React.FC = () => {
             {['UX Design', 'Visual Storytelling', 'Interactive Prototypes', 'Data-Driven Design', 'Human-Centered'].map(skill => (
               <span key={skill} className="font-mono" style={{
                 fontSize: '12px', letterSpacing: '0.25em',
-                color: 'rgba(255, 255, 255, 0.91)',
+                color: 'rgba(249,241,231,0.75)',
                 textTransform: 'uppercase',
                 display: 'flex', alignItems: 'center', gap: '6px',
               }}>
-                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(249,241,231,0.3)', flexShrink: 0 }} />
                 {skill}
               </span>
             ))}
@@ -239,7 +242,7 @@ const Introduction: React.FC = () => {
       <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{
         height: '25vh',
         zIndex: 20,
-        background: 'linear-gradient(to bottom, transparent 0%, #07091e 100%)',
+        background: 'linear-gradient(to bottom, transparent 0%, #3A5B8A 100%)',
       }} />
 
       <style>{`
@@ -263,7 +266,7 @@ const Corner: React.FC<{ pos: string; mirror?: string }> = ({ pos, mirror }) => 
       style={{ zIndex: 5, transform: `scale(${scaleX}, ${scaleY})` }}
     >
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M0 24 L0 0 L24 0" stroke="rgba(255,255,255,0.12)" strokeWidth="1" fill="none" />
+        <path d="M0 24 L0 0 L24 0" stroke="rgba(249,241,231,0.25)" strokeWidth="1" fill="none" />
       </svg>
     </div>
   );

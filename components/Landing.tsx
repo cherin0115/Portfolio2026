@@ -124,30 +124,30 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
     <section
       id="landing"
       className="relative h-screen w-full flex items-center justify-center overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #07091e 0%, #0c0c2c 40%, #111428 100%)' }}
+      style={{ background: 'linear-gradient(180deg, #3A5B8A 0%, #4A6B9A 40%, #5A7BAE 100%)' }}
     >
       {/* Star-field — pure CSS dots via box-shadow trick */}
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
         <div style={{
           position: 'absolute', inset: 0,
           backgroundImage: `
-            radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.7) 0%, transparent 100%),
-            radial-gradient(1px 1px at 75% 8%,  rgba(255,255,255,0.5) 0%, transparent 100%),
-            radial-gradient(1px 1px at 42% 55%, rgba(255,255,255,0.6) 0%, transparent 100%),
-            radial-gradient(1px 1px at 88% 33%, rgba(255,255,255,0.4) 0%, transparent 100%),
-            radial-gradient(1px 1px at 5%  72%, rgba(255,255,255,0.5) 0%, transparent 100%),
-            radial-gradient(1px 1px at 60% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
-            radial-gradient(1px 1px at 30% 90%, rgba(255,255,255,0.6) 0%, transparent 100%),
-            radial-gradient(1px 1px at 92% 65%, rgba(255,255,255,0.5) 0%, transparent 100%),
-            radial-gradient(1px 1px at 50% 12%, rgba(255,255,255,0.4) 0%, transparent 100%),
-            radial-gradient(1px 1px at 22% 45%, rgba(255,255,255,0.7) 0%, transparent 100%),
-            radial-gradient(2px 2px at 68% 22%, rgba(255,255,255,0.3) 0%, transparent 100%),
-            radial-gradient(1px 1px at 80% 78%, rgba(255,255,255,0.5) 0%, transparent 100%)
+            radial-gradient(1px 1px at 15% 20%, rgba(249,241,231,0.7) 0%, transparent 100%),
+            radial-gradient(1px 1px at 75% 8%,  rgba(249,241,231,0.5) 0%, transparent 100%),
+            radial-gradient(1px 1px at 42% 55%, rgba(249,241,231,0.6) 0%, transparent 100%),
+            radial-gradient(1px 1px at 88% 33%, rgba(249,241,231,0.4) 0%, transparent 100%),
+            radial-gradient(1px 1px at 5%  72%, rgba(249,241,231,0.5) 0%, transparent 100%),
+            radial-gradient(1px 1px at 60% 80%, rgba(249,241,231,0.3) 0%, transparent 100%),
+            radial-gradient(1px 1px at 30% 90%, rgba(249,241,231,0.6) 0%, transparent 100%),
+            radial-gradient(1px 1px at 92% 65%, rgba(249,241,231,0.5) 0%, transparent 100%),
+            radial-gradient(1px 1px at 50% 12%, rgba(249,241,231,0.4) 0%, transparent 100%),
+            radial-gradient(1px 1px at 22% 45%, rgba(249,241,231,0.7) 0%, transparent 100%),
+            radial-gradient(2px 2px at 68% 22%, rgba(249,241,231,0.3) 0%, transparent 100%),
+            radial-gradient(1px 1px at 80% 78%, rgba(249,241,231,0.5) 0%, transparent 100%)
           `,
         }} />
       </div>
 
-      {/* Background clouds — screen blended, ethereal on dark sky */}
+      {/* Background clouds — dusty pink tint, screen blended */}
       <div
         ref={bgCloudsRef}
         className="absolute inset-0 pointer-events-none"
@@ -165,7 +165,7 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
               top: `${c.top}%`,
               left: `${c.left}vw`,
               opacity: c.opacity,
-              filter: 'blur(3px) brightness(1.4)',
+              filter: 'blur(3px) sepia(0.55) hue-rotate(310deg) saturate(1.3) brightness(1.1)',
               ...GPU,
             }}
           />
@@ -183,16 +183,16 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
             fontSize: '15px',
             letterSpacing: '0.6em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.3)',
+            color: 'rgba(249,241,231,0.5)',
             marginBottom: '20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '16px',
           }}>
-            <span style={{ width: '40px', height: '1px', background: 'rgba(255, 255, 255, 0.82)' }} />
+            <span style={{ width: '40px', height: '1px', background: 'rgba(249,241,231,0.6)' }} />
             DESIGN JOURNEY PROTOCOL
-            <span style={{ width: '40px', height: '1px', background: 'rgba(255, 255, 255, 0.82)' }} />
+            <span style={{ width: '40px', height: '1px', background: 'rgba(249,241,231,0.6)' }} />
           </div>
 
           {/* Main name */}
@@ -201,14 +201,14 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
             style={{
               marginTop: 40,
               fontSize: 'clamp(5rem, 14vw, 11rem)',
-              color: '#ffffff',
+              color: '#F9F1E7',
               fontWeight: 300,
               lineHeight: 1.4,
               letterSpacing: '-0.02em',
             }}
           >
             Hi, I'm <br />
-            <span ref={nameRef} style={{ fontWeight: 700, color: '#ffffff' }}>Cherin</span>
+            <span ref={nameRef} style={{ fontWeight: 700, color: '#F9F1E7' }}>Cherin</span>
           </h1>
 
           {/* HUD data strip below name */}
@@ -220,15 +220,15 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
             gap: '28px',
           }}>
             <HudChip label="DEPART" value="RICHMOND, VA" />
-            <span style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.1)' }} />
+            <span style={{ width: '1px', height: '28px', background: 'rgba(249,241,231,0.2)' }} />
             <HudChip label="ROUTE" value="VA → KR → CA" />
-            <span style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.1)' }} />
-            <HudChip label="STATUS" value="PRE-FLIGHT" accent="#58aa5a" />
+            <span style={{ width: '1px', height: '28px', background: 'rgba(249,241,231,0.2)' }} />
+            <HudChip label="STATUS" value="PRE-FLIGHT" accent="#F4D793" />
           </div>
         </div>
       </div>
 
-      {/* Foreground clouds — in front of text */}
+      {/* Foreground clouds — peach tint, in front of text */}
       <div
         ref={fgCloudsRef}
         className="absolute inset-0 pointer-events-none"
@@ -246,7 +246,7 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
               top: `${c.top}%`,
               left: `${c.left}vw`,
               opacity: c.opacity,
-              filter: 'brightness(1.3)',
+              filter: 'sepia(0.45) hue-rotate(340deg) saturate(1.4) brightness(1.15)',
               ...GPU,
             }}
           />
@@ -260,20 +260,20 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
         style={{
           zIndex: 35,
           opacity: 0.04,
-          backgroundImage: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 1px, transparent 1px, transparent 4px)',
+          backgroundImage: 'repeating-linear-gradient(0deg, rgba(232,180,184,0.08) 0px, rgba(232,180,184,0.08) 1px, transparent 1px, transparent 4px)',
         }}
       />
 
       {/* Scroll indicator — HUD style */}
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3" style={{ zIndex: 40 }}>
-        <span className="font-mono" style={{ fontSize: '8px', letterSpacing: '0.5em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase' }}>
+        <span className="font-mono" style={{ fontSize: '8px', letterSpacing: '0.5em', color: 'rgba(249,241,231,0.45)', textTransform: 'uppercase' }}>
           INITIATE DESCENT
         </span>
-        <div style={{ width: '1px', height: '56px', background: 'rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ width: '1px', height: '56px', background: 'rgba(249,241,231,0.15)', position: 'relative', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0,
             height: '40%',
-            background: 'rgba(255,255,255,0.5)',
+            background: 'rgba(249,241,231,0.6)',
             animation: 'scroll-hint 2.5s infinite ease-in-out',
           }} />
         </div>
@@ -285,7 +285,7 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
         style={{
           height: '30vh',
           zIndex: 50,
-          background: 'linear-gradient(to bottom, transparent 0%, #07091e 100%)',
+          background: 'linear-gradient(to bottom, transparent 0%, #3A5B8A 100%)',
         }}
       />
 
@@ -307,10 +307,10 @@ const Landing: React.FC<{ introComplete?: boolean }> = ({ introComplete }) => {
 // Small HUD readout chip
 const HudChip: React.FC<{ label: string; value: string; accent?: string }> = ({ label, value, accent }) => (
   <div style={{ textAlign: 'center' }}>
-    <div className="font-mono" style={{ fontSize: '10px', letterSpacing: '0.3em', color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', marginBottom: '4px' }}>
+    <div className="font-mono" style={{ fontSize: '10px', letterSpacing: '0.3em', color: 'rgba(249,241,231,0.45)', textTransform: 'uppercase', marginBottom: '4px' }}>
       {label}
     </div>
-    <div className="font-mono" style={{ fontSize: '15px', letterSpacing: '0.15em', color: accent ?? 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>
+    <div className="font-mono" style={{ fontSize: '15px', letterSpacing: '0.15em', color: accent ?? 'rgba(249,241,231,0.75)', textTransform: 'uppercase' }}>
       {value}
     </div>
   </div>

@@ -1,0 +1,46 @@
+You are a Creative Developer tasked with updating the visual theme of a "Paragliding Journey" portfolio (Richmond → Seoul → LA).
+
+[Strict Constraint: Animation Preservation]
+
+DO NOT change the existing animation logic, triggers, or character movements in the Loading, Landing, Intro, and Introduction pages.
+
+Only update the CSS Variables (Colors), Visual Assets, and Stylistic Finishes.
+
+[Visual Language & Tone: Vintage Pastel]
+
+Aesthetic: A whimsical, storybook-style illustration that feels like a handcrafted, vintage paper diorama.
+
+Palette: Apply the exact night-time pastel tones from the provided images to the entire site, including the Loading and Landing pages:
+
+Sky/Background: Deep Pastel Blue (#5A7BAE).
+
+Clouds/Elements: Soft Dusty Pink (#E8B4B8) and Muted Peach (#F4D793).
+
+Highlights/Text: Warm Cream (#F9F1E7).
+
+Texture: Apply a subtle "film grain" or "matte paper texture" to all backgrounds to achieve a vintage, analog feel.
+
+[Asset Paths & Composition Rules]
+Use the following file paths for the section backgrounds and strictly follow the composition of the provided images without adding new objects:
+
+Richmond Section
+
+Path: assets/Richmond.png
+
+Composition: Symmetrical red brick buildings, twin towers, and the James River. Centered foreground features a person in a mustard yellow beanie in a wooden boat.
+
+Seoul Section
+
+Path: assets/Seoul.png
+
+Composition: The Gwanghwamun gate centered with N Seoul Tower. Foreground features two symmetrical vintage white cars.
+
+Los Angeles Section
+
+Path: assets/Los_angeles.png
+
+Composition: The "LOS ANGELES" arched gate with symmetrical palm trees. Foreground features symmetrical white cars with surfboards.
+
+[Typography]
+
+Use soft, rounded, storybook-friendly fonts (e.g., 'Quicksand' or 'Alice') for a "cute" and "whimsical" feel.
