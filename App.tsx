@@ -112,11 +112,11 @@ const App: React.FC = () => {
       {/* ── Wipe transition overlay ─────────────────────────────────── */}
       <div
         className="wipe-overlay fixed inset-0 z-[9999] rounded-full scale-0 opacity-0 pointer-events-none flex items-center justify-center"
-        style={{ backgroundColor: '#07091e' }}
+        style={{ backgroundColor: '#5c7ba4' }}
       >
         <div className="font-mono" style={{
-          color: 'rgba(255,255,255,0.35)',
-          fontSize: '9px',
+          color: 'rgb(255, 255, 255)',
+          fontSize: '12px',
           letterSpacing: '0.5em',
           textTransform: 'uppercase',
         }}>
