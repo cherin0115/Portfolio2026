@@ -25,8 +25,7 @@ const App: React.FC = () => {
     progress: 0
   });
 
-  const mainRef      = useRef<HTMLDivElement>(null);
-  const savedScrollY = useRef(0);
+  const mainRef = useRef<HTMLDivElement>(null);
 
   const handleIntroComplete = () => {
     sessionStorage.setItem('intro_done', '1');
@@ -35,8 +34,11 @@ const App: React.FC = () => {
   };
 
   const handleProjectClick = (project: Project) => {
+    // Lock scroll immediately so the GSAP pin spacer stays in the DOM
+    // and window.scrollY is frozen at the current journey position.
+    document.body.style.overflow = 'hidden';
+
     if (project.id === 'VA-01') {
-      savedScrollY.current = window.scrollY;
       const tl = gsap.timeline();
       tl.set('.wipe-overlay', { scale: 0, opacity: 1 });
       tl.to('.wipe-overlay', {
@@ -69,7 +71,7 @@ const App: React.FC = () => {
       ease: 'power4.inOut',
       onComplete: () => {
         setIsHudOpen(false);
-        window.scrollTo(0, savedScrollY.current);
+        document.body.style.overflow = '';
       },
     })
     .to('.wipe-overlay', { scale: 5, opacity: 0, duration: 0.6, ease: 'power4.out' });
@@ -84,15 +86,7 @@ const App: React.FC = () => {
       ease: 'power4.inOut',
       onComplete: () => {
         setSelectedProject(null);
-        tl.pause();
-        requestAnimationFrame(() => {
-          const savedY = sessionStorage.getItem('pj_scroll_y');
-          if (savedY) {
-            window.scrollTo(0, parseInt(savedY, 10));
-            ScrollTrigger.update();
-          }
-          tl.resume();
-        });
+        document.body.style.overflow = '';
       },
     })
     .to('.wipe-overlay', { scale: 0, opacity: 0, duration: 0.6, ease: 'power4.out' });
@@ -134,7 +128,7 @@ const App: React.FC = () => {
       </div>
 
       {/* ── Main Content ────────────────────────────────────────────── */}
-      <div ref={mainRef} className={selectedProject || isHudOpen ? 'hidden' : 'block'}>
+      <div ref={mainRef}>
         <Landing introComplete={introComplete} />
         <Introduction />
         <ParaglidingJourney
