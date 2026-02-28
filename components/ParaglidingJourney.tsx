@@ -18,6 +18,8 @@ const GPU: React.CSSProperties = {
   backfaceVisibility: 'hidden',
 };
 
+const BG_MASK = 'radial-gradient(ellipse 90% 88% at center, black 50%, transparent 100%)';
+
 const PALETTE = {
   sky: {
     [JourneyStop.VIRGINIA]: 'linear-gradient(180deg, #1E3A5F 0%, #2A4A70 55%, #365870 100%)',
@@ -68,6 +70,8 @@ const ParaglidingJourney: React.FC<{
   const worldRef      = useRef<HTMLDivElement>(null);
   const characterRef  = useRef<HTMLDivElement>(null);
   const bgRef         = useRef<HTMLDivElement>(null);
+  const seoulBgRef    = useRef<HTMLDivElement>(null);
+  const laBgRef       = useRef<HTMLDivElement>(null);
   const skyRef        = useRef<HTMLDivElement>(null);
 
   const lastScrollY    = useRef(window.scrollY);
@@ -125,12 +129,16 @@ const ParaglidingJourney: React.FC<{
               accent: PALETTE.accent[stop] ?? cityData.accent,
             });
 
-            if (bgRef.current) {
-              if (stop === JourneyStop.VIRGINIA) {
-                gsap.set(bgRef.current, { xPercent: -p * 20, opacity: 1 - p * 3 });
-              } else {
-                gsap.set(bgRef.current, { opacity: 0 });
-              }
+            if (bgRef.current && seoulBgRef.current && laBgRef.current) {
+              const vaOpacity    = Math.max(0, 1 - p / 0.33);
+              const seoulOpacity = Math.min(
+                Math.min(1, Math.max(0, (p - 0.25) / 0.13)),
+                Math.min(1, Math.max(0, (0.68 - p) / 0.13)),
+              );
+              const laOpacity    = Math.min(1, Math.max(0, (p - 0.55) / 0.13));
+              gsap.set(bgRef.current,      { opacity: vaOpacity });
+              gsap.set(seoulBgRef.current, { opacity: seoulOpacity });
+              gsap.set(laBgRef.current,    { opacity: laOpacity });
             }
 
             if (skyRef.current) {
@@ -144,9 +152,7 @@ const ParaglidingJourney: React.FC<{
         },
       });
 
-      mainTl.to(worldRef.current, { x: '-210vw', ease: 'none' }, 0);
-      mainTl.to(worldRef.current, { y: '-100vh', x: '0vw', ease: 'none' }, 0.33);
-      mainTl.to(worldRef.current, { y: '-200vh', ease: 'none' }, 0.66);
+      mainTl.to(worldRef.current, { x: '-400vw', ease: 'none' }, 0);
 
       const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       const pos   = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -181,9 +187,11 @@ const ParaglidingJourney: React.FC<{
   const cityAccent  = PALETTE.accent[currentCity] ?? PALETTE.accent[JourneyStop.VIRGINIA];
 
   return (
-    <div id="journey" ref={containerRef} className="relative w-full h-screen overflow-hidden" style={{ backgroundColor: '#1E3A5F' }}>
+    <div id="journey" ref={containerRef} className="relative w-full overflow-hidden" style={{ backgroundColor: '#1E3A5F', height: '100svh' }}>
       <div ref={skyRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: SKY_GRADIENT[JourneyStop.VIRGINIA], transition: 'background 1.4s ease', ...GPU }} />
-      <div ref={bgRef} className="fixed top-0 left-0 h-screen pointer-events-none" style={{ width: '145vw', backgroundImage: `url(${richmondBg})`, backgroundSize: 'cover', backgroundPosition: 'center center', zIndex: 1, ...GPU }} />
+      <div ref={bgRef}      className="fixed top-0 left-0 pointer-events-none" style={{ width: '100vw', height: '100svh', backgroundImage: `url(${richmondBg})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center', zIndex: 1,              WebkitMaskImage: BG_MASK, maskImage: BG_MASK, ...GPU }} />
+      <div ref={seoulBgRef} className="fixed top-0 left-0 pointer-events-none" style={{ width: '100vw', height: '100svh', backgroundImage: `url(${seoulBg})`,  backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center', zIndex: 1, opacity: 0, WebkitMaskImage: BG_MASK, maskImage: BG_MASK, ...GPU }} />
+      <div ref={laBgRef}    className="fixed top-0 left-0 pointer-events-none" style={{ width: '100vw', height: '100svh', backgroundImage: `url(${laBgUrl})`,  backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center', zIndex: 1, opacity: 0, WebkitMaskImage: BG_MASK, maskImage: BG_MASK, ...GPU }} />
       <div className="paper-texture fixed inset-0 pointer-events-none" style={{ zIndex: 3 }} />
 
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 4, mixBlendMode: 'screen', filter: cloudFilter, transition: 'filter 1.6s ease' }}>
@@ -197,11 +205,11 @@ const ParaglidingJourney: React.FC<{
       <div className="fixed bottom-0 left-0 right-0 pointer-events-none" style={{ height: '22vh', zIndex: 6, background: 'linear-gradient(to bottom, transparent 0%, #14243C 100%)' }} />
       <div className={`absolute inset-0 z-50 transition-opacity duration-1000 ${loaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} style={{ background: '#1E3A5F' }} />
 
-      <div ref={worldRef} className="relative w-full h-full" style={{ zIndex: 10, ...GPU }}>
-        
-        {/* VIRGINIA - 카드화 적용 */}
-        <div className="h-screen relative overflow-visible" style={{ width: '300vw' }}>
-          <div className="absolute left-0 top-0 h-full flex items-center" style={{ paddingLeft: '8vw' }}>
+      <div ref={worldRef} style={{ position: 'relative', display: 'flex', flexDirection: 'row', width: '500vw', height: '100svh', zIndex: 10, ...GPU }}>
+
+        {/* VIRGINIA */}
+        <div style={{ width: '200vw', height: '100svh', flexShrink: 0, position: 'relative', overflow: 'visible' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', display: 'flex', alignItems: 'center', paddingLeft: 'clamp(16px, 5vw, 64px)' }}>
             <CitySection
               tag="WAYPOINT 01"
               city="Virginia"
@@ -215,9 +223,9 @@ const ParaglidingJourney: React.FC<{
         </div>
 
         {/* SEOUL */}
-        <div className="h-screen w-full relative" style={{ backgroundImage: `url(${seoulBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div style={{ width: '150vw', height: '100svh', flexShrink: 0, position: 'relative' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(20,30,64,0.72) 0%, rgba(20,30,64,0.3) 55%, transparent 100%)' }} />
-          <div className="relative flex items-center h-full" style={{ padding: '0 8vw', zIndex: 2 }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%', padding: '0 clamp(16px, 5vw, 64px)', zIndex: 2 }}>
             <CitySection
               tag="WAYPOINT 02"
               city="Seoul"
@@ -231,9 +239,9 @@ const ParaglidingJourney: React.FC<{
         </div>
 
         {/* LOS ANGELES */}
-        <div className="h-screen w-full relative" style={{ backgroundImage: `url(${laBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div style={{ width: '150vw', height: '100svh', flexShrink: 0, position: 'relative' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(20,26,56,0.70) 0%, rgba(20,26,56,0.28) 55%, transparent 100%)' }} />
-          <div className="relative flex items-center h-full" style={{ padding: '0 8vw', zIndex: 2 }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%', padding: '0 clamp(16px, 5vw, 64px)', zIndex: 2 }}>
             <CitySection
               tag="WAYPOINT 03"
               city="Los Angeles"
@@ -247,7 +255,7 @@ const ParaglidingJourney: React.FC<{
         </div>
       </div>
 
-      <div ref={characterRef} className="fixed top-0 left-0 pointer-events-none" style={{ zIndex: 60, width: 'clamp(100px, 14vw, 200px)', transform: 'translate(-50%,-50%)', filter: `drop-shadow(0 4px 20px ${cityAccent}66)`, ...GPU }}>
+      <div ref={characterRef} className="fixed top-0 left-0 pointer-events-none" style={{ zIndex: 60, width: 'clamp(60px, 10vw, 160px)', transform: 'translate(-50%,-50%)', filter: `drop-shadow(0 4px 20px ${cityAccent}66)`, ...GPU }}>
         <img src="/assets/Artboard 9.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </div>
 
@@ -278,9 +286,9 @@ const CityHeader: React.FC<{ tag: string; city: string; sub: string; accent: str
 );
 
 const CitySection: React.FC<{ tag: string; city: string; sub: string; accent: string; coords: string; projects: ProjectType[]; onProjectClick: (p: ProjectType) => void; }> = ({ tag, city, sub, accent, coords, projects, onProjectClick }) => (
-  <div style={{ display: 'flex', gap: '48px', alignItems: 'center', width: '100%' }}>
+  <div style={{ display: 'flex', gap: 'clamp(16px, 3vw, 48px)', alignItems: 'center', width: '100%' }}>
     <CityHeader tag={tag} city={city} sub={sub} accent={accent} coords={coords} />
-    <div className="scrollbar-hide" style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', flex: 1 }}>
+    <div className="scrollbar-hide" style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px', flex: 1, WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
       {projects.map(p => (
         <ProjectCard key={p.id} project={p} accent={accent} onClick={() => onProjectClick(p)} />
       ))}
@@ -294,7 +302,7 @@ const ProjectCard: React.FC<{ project: ProjectType; accent: string; onClick: () 
   const onLeave = () => gsap.to(cardRef.current, { scale: 1.00, duration: 0.4, ease: 'power2.out' });
 
   return (
-    <div ref={cardRef} onClick={onClick} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ flexShrink: 0, width: '260px', height: '330px', borderRadius: '16px', overflow: 'hidden', cursor: 'pointer', position: 'relative', background: 'rgba(30,50,90,0.55)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', border: `1px solid ${accent}44`, boxShadow: `0 8px 32px rgba(0,0,0,0.38)` }}>
+    <div ref={cardRef} onClick={onClick} onMouseEnter={onEnter} onMouseLeave={onLeave} style={{ flexShrink: 0, width: 'clamp(200px, 72vw, 260px)', height: 'clamp(260px, 42svh, 330px)', borderRadius: '16px', overflow: 'hidden', cursor: 'pointer', position: 'relative', background: 'rgba(30,50,90,0.55)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', border: `1px solid ${accent}44`, boxShadow: `0 8px 32px rgba(0,0,0,0.38)` }}>
       <img src={project.thumbnail} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
       <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, rgba(15,25,50,0.92) 0%, rgba(15,25,50,0.15) 60%, transparent 100%)` }} />
       <div style={{ position: 'absolute', inset: 0, padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
