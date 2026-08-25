@@ -1,4 +1,25 @@
-/* Vintage Pastel Theme — Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Cantarell:wght@400;500;700&family=Inconsolata:wght@400;500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* DESIGN.md §5 — Home page palette. The bands render with multiply onto --base. */
+:root {
+  --base:   #FDFCFA;
+  --panel:  #FDF9F3;
+  --ink:    #14141A;
+  --muted:  #6E6E75;
+  --faint:  #8A8A90;
+  --warp:   #8FA8F0;
+  --weft:   #F8DCC8;
+  --bullet: #2E7D5B;
+  --rule:   #E8E6E0;
+}
+
+@font-face {
+  font-family: 'Cherin Hand';
+  src: url('./assets/font/CherinHand-Regular.ttf') format('truetype');
+}
+
+/* Vintage Pastel Theme — kept for the old, currently-unmounted cinematic
+   components (Landing/Introduction/ParaglidingJourney/HUD). Harmless if unused. */
 :root {
   --color-richmond: #8C3A3A; /* deep brick red for reference, not used in palette */
   --color-va:    #8CC8C0;   /* soft seafoam teal   */
@@ -13,22 +34,31 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Quicksand', 'Alice', sans-serif;
-  background-color: var(--sky-deep);
-  color: var(--cream);
+  font-family: 'Inter', sans-serif;
+  background-color: var(--base);
+  color: var(--ink);
   overflow-x: hidden;
   min-height: 100vh;
-  /* Film grain texture overlay */
-  background-image:
-    url('/assets/film_grain.png'),
-    linear-gradient(var(--sky-deep), var(--sky-deep));
-  background-blend-mode: multiply;
-  background-size: cover, cover;
-  background-repeat: repeat, no-repeat;
 }
 
-.font-mono  { font-family: 'Quicksand', sans-serif; font-weight: 600; letter-spacing: 0.05em; }
+.font-mono  { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em; }
 .font-serif { font-family: 'Alice', serif; }
+
+/* Case study reading pages (LightTCaseStudy, ScoutyCaseStudy, ...) */
+.case-study-panel p { font-family: 'Cantarell', sans-serif; }
+.case-study-panel h1, .case-study-panel h2, .case-study-panel h3 { font-family: 'Inconsolata', monospace; }
+
+@keyframes bands-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes bands-fade-in {
+    from { opacity: 1; }
+    to   { opacity: 1; }
+  }
+}
 
 ::-webkit-scrollbar { display: none; }
 html { scrollbar-width: none; }
