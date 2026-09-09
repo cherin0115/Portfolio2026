@@ -41,9 +41,17 @@ const BASE_COLOR = '#FDFCFA';
 const WARP_COLOR = '#8FA8F0'; // blue, vertical bands
 const WEFT_COLOR = '#F8DCC8'; // peach, horizontal bands
 
-// Normalized bottom-right rectangle the bio sits in — kept lighter so the
-// text stays readable against the densest part of the band field (DESIGN.md §6).
+// Fallback normalized rectangle, used until the real bio position is measured
+// (or on views with no bio) — kept lighter so text stays readable against the
+// densest part of the band field (DESIGN.md §6).
 const BIO_ZONE = { x0: 0.58, y0: 0.68, x1: 1.0, y1: 1.0 };
+
+export interface BioRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
 
 function band(i: number, seed: number, density: number, drift: number, u: BandUniforms) {
   const h = hash(i, seed);
@@ -59,9 +67,11 @@ function band(i: number, seed: number, density: number, drift: number, u: BandUn
   return { pos: cluster, width: w, alpha: a };
 }
 
-const BandsCanvas: React.FC<{ mode: BandsMode; dimmed?: boolean }> = ({ mode, dimmed }) => {
+const BandsCanvas: React.FC<{ mode: BandsMode; dimmed?: boolean; bioRect?: BioRect | null }> = ({ mode, dimmed, bioRect }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const modeRef = useRef(mode);
+  const dimmedRef = useRef(dimmed);
+  const bioRectRef = useRef(bioRect);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -125,12 +135,17 @@ const BandsCanvas: React.FC<{ mode: BandsMode; dimmed?: boolean }> = ({ mode, di
         ctx.fillRect(0, cy - bh / 2, width, bh);
       }
 
-      // Low-density lane behind the bio (bottom-right), both modes: a solid
-      // wash through the zone the text actually occupies, feathered only at
-      // the outer edge so it reads as a quiet patch, not a hard box.
+      // Low-density lane behind the bio, both modes: a solid wash through the
+      // zone the text actually occupies, feathered only at the outer edge so
+      // it reads as a quiet patch, not a hard box. Tracks the bio's real
+      // on-screen position when known; falls back to the fixed corner otherwise.
       ctx.globalCompositeOperation = 'source-over';
-      const zx = BIO_ZONE.x0 * width, zy = BIO_ZONE.y0 * height;
-      const zw = (BIO_ZONE.x1 - BIO_ZONE.x0) * width, zh = (BIO_ZONE.y1 - BIO_ZONE.y0) * height;
+      const br = bioRectRef.current;
+      const padX = 32, padY = 28;
+      const zx = br ? br.left - padX : BIO_ZONE.x0 * width;
+      const zy = br ? br.top - padY : BIO_ZONE.y0 * height;
+      const zw = br ? br.width + padX * 2 : (BIO_ZONE.x1 - BIO_ZONE.x0) * width;
+      const zh = br ? br.height + padY * 2 : (BIO_ZONE.y1 - BIO_ZONE.y0) * height;
 
       ctx.fillStyle = 'rgba(253,252,250,0.94)';
       ctx.fillRect(zx, zy, zw, zh);
@@ -153,10 +168,15 @@ const BandsCanvas: React.FC<{ mode: BandsMode; dimmed?: boolean }> = ({ mode, di
         current = lerpUniforms(transitionFrom, modeRef.current === 'mono' ? MONO : LIGHT, p);
         if (p >= 1) transitionStart = 0;
       }
-      driftX = (driftX + current.speed * 0.016) % 1;
-      driftY = (driftY + current.speed * 0.011) % 1;
+      // Only advance drift while the pattern isn't dimmed behind a case study —
+      // dimmed means "parked", so the check pattern should hold still.
+      if (!dimmedRef.current) {
+        driftX = (driftX + current.speed * 0.016) % 1;
+        driftY = (driftY + current.speed * 0.011) % 1;
+      }
       draw();
-      if (!reduceMotion) raf = requestAnimationFrame(frame);
+      if (!reduceMotion && !dimmedRef.current) raf = requestAnimationFrame(frame);
+      else raf = 0;
     }
 
     if (reduceMotion) {
@@ -176,6 +196,18 @@ const BandsCanvas: React.FC<{ mode: BandsMode; dimmed?: boolean }> = ({ mode, di
       }
     };
 
+    (canvas as any).__setDimmed = (next: boolean) => {
+      dimmedRef.current = next;
+      if (!next && !reduceMotion && !raf) {
+        raf = requestAnimationFrame(frame);
+      }
+    };
+
+    (canvas as any).__setBioRect = (next: BioRect | null | undefined) => {
+      bioRectRef.current = next;
+      if (!raf) draw(); // patch moved while the loop is parked (dimmed or reduced-motion) — redraw once
+    };
+
     return () => {
       window.removeEventListener('resize', resize);
       if (raf) cancelAnimationFrame(raf);
@@ -188,6 +220,18 @@ const BandsCanvas: React.FC<{ mode: BandsMode; dimmed?: boolean }> = ({ mode, di
     canvas?.__startTransition?.();
   }, [mode]);
 
+  useEffect(() => {
+    dimmedRef.current = dimmed;
+    const canvas = canvasRef.current as any;
+    canvas?.__setDimmed?.(!!dimmed);
+  }, [dimmed]);
+
+  useEffect(() => {
+    bioRectRef.current = bioRect;
+    const canvas = canvasRef.current as any;
+    canvas?.__setBioRect?.(bioRect);
+  }, [bioRect]);
+
   return (
     <div
       aria-hidden="true"
@@ -196,8 +240,13 @@ const BandsCanvas: React.FC<{ mode: BandsMode; dimmed?: boolean }> = ({ mode, di
         inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        opacity: dimmed ? 0.5 : 1,
-        transition: 'opacity 500ms ease',
+        opacity: dimmed ? 0.2 : 1,
+        // Mono strips the bands down to black and white. Filtered here rather
+        // than on an ancestor: filter on an ancestor of a `position: fixed`
+        // element hijacks it as that element's containing block, which broke
+        // this canvas's (and the mode toggle's) fixed positioning entirely.
+        filter: mode === 'mono' ? 'grayscale(1)' : 'none',
+        transition: 'opacity 500ms ease, filter 800ms ease',
       }}
     >
       <canvas
