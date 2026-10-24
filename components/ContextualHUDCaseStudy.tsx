@@ -66,7 +66,7 @@ const ContextualHUDCaseStudy: React.FC<ContextualHUDCaseStudyProps> = ({ onBack 
         className="case-study-panel"
         style={{
           position: 'relative',
-          width: 'min(94vw, 820px)',
+          width: 'min(94vw, 800px)',
           margin: '0 auto',
           padding: '16px clamp(20px, 5vw, 48px) 48px',
           boxSizing: 'border-box',
