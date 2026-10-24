@@ -20,7 +20,7 @@ export interface HomeProject {
 // three need real year/role/client before shipping.
 export const HOME_PROJECTS: HomeProject[] = [
   { id: 'light-t',        title: 'Light-T',        year: '2022', role: 'Design & Dev', client: 'Korea Transport Institute', color: 'var(--warp)', hasCaseStudy: true   },
-  { id: 'scouty',         title: 'Scouty',         year: '2025', role: 'Design & Dev',    client: 'Richmond, Virginia',                color: 'var(--weft)', hasCaseStudy: true   },
+  { id: 'scouty',         title: 'Scouty',         year: '2026', role: 'Design & Dev',    client: 'Richmond, Virginia',                color: 'var(--weft)', hasCaseStudy: true   },
   { id: 'bitti',          title: 'Bitti',          year: '2025', role: 'Design & Dev',    client: 'Individual Study',                color: 'var(--bullet)', hasCaseStudy: true   },
   { id: 'contextual-hud', title: 'Contextual HUD', year: '2025', role: 'Design & Dev',    client: 'Individual Study',                color: 'var(--ink)', hasCaseStudy: true    },
   { id: 'duoEcho', title: 'DuoEcho', year: '2025', role: 'Design',    client: 'Team Project',                color: 'var(--ink)', hasCaseStudy: true    },

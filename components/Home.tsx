@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import BandsCanvas, { BandsMode } from './BandsCanvas';
 import WorkView from './WorkView';
 import InfoView from './InfoView';
+import ContactView from './ContactView';
 import LightTCaseStudy from './LightTCaseStudy';
 import ScoutyCaseStudy from './ScoutyCaseStudy';
 import BittiCaseStudy from './BittiCaseStudy';
@@ -10,20 +11,20 @@ import DuoEchoCaseStudy from './DuoEchoCaseStudy';
 
 const MODE_KEY = 'bands-mode';
 
-type View = 'home' | 'work' | 'info' | 'light-t' | 'scouty' | 'bitti' | 'contextual-hud' | 'duoEcho';
+type View = 'home' | 'work' | 'info' | 'contact' | 'light-t' | 'scouty' | 'bitti' | 'contextual-hud' | 'duoEcho';
 
 const CASE_STUDY_VIEWS: View[] = ['light-t', 'scouty', 'bitti', 'contextual-hud', 'duoEcho'];
 
 // Views whose panels are dense enough that the weave behind them should dim
 // and hold still (DESIGN.md §6).
-const DIM_VIEWS: View[] = [...CASE_STUDY_VIEWS, 'info'];
+const DIM_VIEWS: View[] = [...CASE_STUDY_VIEWS, 'info', 'contact'];
 
 const NAV_ITEMS: { n: number; label: string; view?: View }[] = [
   { n: 1, label: 'Home', view: 'home' },
   { n: 2, label: 'Work', view: 'work' },
   { n: 3, label: 'Notes' },
   { n: 4, label: 'Info', view: 'info' },
-  { n: 5, label: 'Contact' },
+  { n: 5, label: 'Contact', view: 'contact' },
 ];
 
 const BIO_LINES = [
@@ -38,6 +39,7 @@ function viewFromHash(): View {
   if (match) return match;
   if (window.location.hash === '#work') return 'work';
   if (window.location.hash === '#info') return 'info';
+  if (window.location.hash === '#contact') return 'contact';
   return 'home';
 }
 
@@ -80,7 +82,7 @@ const Home: React.FC = () => {
   }, []);
 
   const goTo = (v: View) => {
-    window.location.hash = v === 'home' ? '#home' : CASE_STUDY_VIEWS.includes(v) ? `#work/${v}` : v === 'info' ? '#info' : '#work';
+    window.location.hash = v === 'home' ? '#home' : CASE_STUDY_VIEWS.includes(v) ? `#work/${v}` : v === 'info' ? '#info' : v === 'contact' ? '#contact' : '#work';
     setView(v);
     window.scrollTo(0, 0);
   };
@@ -156,6 +158,7 @@ const Home: React.FC = () => {
 
           {view === 'work' && <WorkView onOpenProject={(id) => CASE_STUDY_VIEWS.includes(id as View) && goTo(id as View)} />}
           {view === 'info' && <InfoView />}
+          {view === 'contact' && <ContactView />}
           {view === 'light-t' && <LightTCaseStudy onBack={() => goTo('work')} />}
           {view === 'scouty' && <ScoutyCaseStudy onBack={() => goTo('work')} />}
           {view === 'bitti' && <BittiCaseStudy onBack={() => goTo('work')} />}
